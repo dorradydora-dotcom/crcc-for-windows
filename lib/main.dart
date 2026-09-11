@@ -70,8 +70,8 @@ Future<void> _initializeHeavyServicesInBackground() async {
       await _setupNotificationsInBackground();
     }
 
-    // 4. تهيئة WebView في الخلفية (للتطوير فقط)
-    if (!kReleaseMode) {
+    // 4. تهيئة WebView في الخلفية (للتطوير فقط على الموبايل)
+    if (!kReleaseMode && GetPlatform.isMobile) {
       await InAppWebViewController.setWebContentsDebuggingEnabled(true);
       AppLogger.logInfo('✅ WebView debugging setup completed in background');
     }

@@ -110,6 +110,7 @@ flutter:
     - lib/assets/images/g/
     - lib/assets/sounds/
     - lib/assets/fonts/
+    - lib/assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

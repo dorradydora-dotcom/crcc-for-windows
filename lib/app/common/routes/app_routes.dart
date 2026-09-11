@@ -10,6 +10,8 @@ import 'package:amiraly/app/features/mainprog/screen/catogriesScreens/projects.d
 import 'package:amiraly/app/features/mainprog/screen/catogriesScreens/reports.dart';
 import 'package:amiraly/app/features/mainprog/screen/catogriesScreens/world.dart';
 
+import 'package:amiraly/app/features/substations/maarof/maarof_screen.dart';
+
 final Map<String, Widget Function(BuildContext)> pageRoutes = {
   'الاحداث': (context) => EventsScreen(),
   'الازمات': (context) => Cmscreen(),
@@ -21,4 +23,6 @@ final Map<String, Widget Function(BuildContext)> pageRoutes = {
   'خريطة': (context) => Mapscreen(),
   'مشروعات': (context) => ProjectsScreen(),
   'Go live': (context) => UsersPage(),
+  'محطة معروف': (context) => MaarofSubstationScreen(),
+  'maarof': (context) => MaarofSubstationScreen(),
 };

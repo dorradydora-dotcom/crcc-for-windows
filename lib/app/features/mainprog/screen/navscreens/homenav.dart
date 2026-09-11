@@ -13,6 +13,7 @@ import 'package:amiraly/app/features/mainprog/screen/navscreens/homenav_controll
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:amiraly/app/common/widgets/news_ticker.dart';
 import 'package:amiraly/core/widgets/electric_loading_indicator.dart';
+import 'package:amiraly/app/features/substations/maarof/maarof_screen.dart';
 
 class HomeNav extends StatefulWidget {
   const HomeNav({super.key});
@@ -269,6 +270,8 @@ class _HomeNavState extends State<HomeNav> {
       padding: EdgeInsets.symmetric(horizontal: 5.00.w),
       child: Column(
         children: [
+          _buildMaarofScadaBanner(),
+          SizedBox(height: 6.h),
           FadeInDown(
             child: HeadlineText(
               fontfamily: Appfontstring.ChangaLight,
@@ -303,6 +306,98 @@ class _HomeNavState extends State<HomeNav> {
           SizedBox(height: 7.h),
           Obx(() => _buildStationSections()),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMaarofScadaBanner() {
+    return FadeInDown(
+      duration: const Duration(milliseconds: 600),
+      child: InkWell(
+        onTap: () => Get.to(() => MaarofSubstationScreen()),
+        borderRadius: BorderRadius.circular(14.r),
+        child: Container(
+          margin: EdgeInsets.symmetric(vertical: 4.h),
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E2235), Color(0xFF0F1A2C)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: Colors.cyanAccent.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.cyanAccent.withValues(alpha: 0.08),
+                blurRadius: 10,
+                spreadRadius: 1,
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.electrical_services_rounded,
+                    color: Colors.cyanAccent, size: 22.sp),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'محطة معروف (MAAROUF 66/11 kV)',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: Appfontstring.ChangaLight,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 5.w, vertical: 1.h),
+                          decoration: BoxDecoration(
+                            color: Colors.greenAccent.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Text('SCADA SLD',
+                              style: TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      'المخطط الأحادي التفاعلي، التحكم بالمفاتيح والقواطع، والبث الحي',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 8.5.sp,
+                        fontFamily: Appfontstring.ChangaLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.cyanAccent, size: 14.sp),
+            ],
+          ),
+        ),
       ),
     );
   }
