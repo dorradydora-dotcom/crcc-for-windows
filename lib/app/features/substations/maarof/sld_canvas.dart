@@ -3,25 +3,37 @@ import 'package:get/get.dart';
 import 'maarof_models.dart';
 import 'maarof_controller.dart';
 import 'sld_elements.dart';
-import 'digital_meter_box.dart';
 
 /// 🎨 المخطط الأحادي التفاعلي لمحطة معروف (MAAROUF 66/11 kV)
-/// - تصميم مطابق بنسبة 100% لشاشة الإسكادا الحقيقية بغرفة التحكم
-/// - قضبان مزدوجة 66kV مع مسارات تفريغ لكل خط (Bus A & Bus B)
-/// - كابلر رأسي رابط بين البارتين (Coupler Bay) في المنتصف
-/// - سكاكين عزل وتأريض قياسية وتغيير فوري بضغطة واحدة
+/// - تصميم مطابق 100% بالملي لشاشة الإسكادا الحقيقية بغرفة التحكم
+/// - خلفية سوداء نقية مع قضبان 66kV بلون أخضر ليموني وقضبان 11kV بلون بنفسجي
+/// - خطوط طولية ممتدة لمفاتيح وقواطع المغذيات مع قراءات التيارات وأسماء المهمات
 class MaarofSldCanvas extends StatelessWidget {
   final MaarofController controller = Get.find<MaarofController>();
 
-  MaarofSldCanvas({super.key});
+  // 🎯 المنسوب الهندسي الدقيق للبارات في الشاشة
+  static const double bb1Y = 320.0; // البارة الأولى 66kV (BB1)
+  static const double bb2Y = 360.0; // البارة الثانية 66kV (BB2)
+  static const double bb11kVY = 560.0; // بارة الـ 11kV السفلية
+
+  final VoidCallback? onSoeTap;
+  final VoidCallback? onCommTap;
+  final VoidCallback? onNetTap;
+
+  MaarofSldCanvas({
+    super.key,
+    this.onSoeTap,
+    this.onCommTap,
+    this.onNetTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 1560,
-      height: 640,
-      color: const Color(0xFF090B12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      width: 1600,
+      height: 940,
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Obx(() {
         final lines = controller.lines66kV;
         final transformers = controller.transformers;
@@ -33,110 +45,115 @@ class MaarofSldCanvas extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             // =========================================================
-            // 1. خطوط البارات الأفقية البيضاء 66kV المستمرة الممتدة بكامل العرض
+            // 0. الهيدر العلوي مدمج في الـ AppBar الرئيسي لشاشة السكادا
+            // =========================================================
+            const SizedBox.shrink(),
+
+            // =========================================================
+            // 1. خطوط البارات الأفقية الخضراء 66kV المستمرة عبر كامل العرض
             // =========================================================
             Positioned(
               left: 0,
               right: 0,
-              top: 156, // محاذاة البارة الأولى BB1
-              child: _buildContinuousBusbar(
+              top: bb1Y - 12.0,
+              child: _build66kVContinuousBusbar(
                 labelLeft: 'BB1A',
                 kvLeft: '${controller.bus1AVoltage.value} KV',
                 labelRight: 'BB1B',
                 kvRight: '${controller.bus1BVoltage.value} KV',
-                color: Colors.white,
                 isTop: true,
               ),
             ),
             Positioned(
               left: 0,
               right: 0,
-              top: 198, // محاذاة البارة الثانية BB2
-              child: _buildContinuousBusbar(
+              top: bb2Y - 12.0,
+              child: _build66kVContinuousBusbar(
                 labelLeft: 'BB2A',
                 kvLeft: '${controller.bus2AVoltage.value} KV',
                 labelRight: 'BB2B',
                 kvRight: '${controller.bus2BVoltage.value} KV',
-                color: Colors.white,
                 isTop: false,
               ),
             ),
 
             // =========================================================
-            // 2. خلايا الـ 66kV السبعة في مواقع منفصلة تماماً وداخل امتداد البارات
+            // 2. خلايا خطوط الـ 66kV الستة (بالمقاسات الحقيقية)
             // =========================================================
             // خط 1: AZBAKIA
             Positioned(
-              left: 40,
-              top: 0,
+              left: 50,
+              top: 90,
               child: _build66kVBay(context, lines[0]),
             ),
             // خط 2: SAYEDA1
             Positioned(
-              left: 175,
-              top: 0,
+              left: 210,
+              top: 90,
               child: _build66kVBay(context, lines[1]),
             ),
             // خط 3: NSABT3
             Positioned(
-              left: 480,
-              top: 0,
+              left: 370,
+              top: 90,
               child: _build66kVBay(context, lines[2]),
             ),
-            // الكابلر بالمنتصف: CPLR (قوس U-Loop)
+
+            // الكابلر بالمنتصف (قاطع و سكاكين التاي بين البارتين)
             Positioned(
-              left: 620,
-              top: 0,
-              child: _build66kVCouplerBay(context),
+              left: 580,
+              top: 90,
+              child: _build66kVCouplerAndTieBay(context),
             ),
+
             // خط 4: NSABT1
             Positioned(
-              left: 800,
-              top: 0,
+              left: 970,
+              top: 90,
               child: _build66kVBay(context, lines[3]),
             ),
             // خط 5: NSABT2
             Positioned(
-              left: 1105,
-              top: 0,
+              left: 1140,
+              top: 90,
               child: _build66kVBay(context, lines[4]),
             ),
             // خط 6: SAYEDA2
             Positioned(
-              left: 1410,
-              top: 0,
+              left: 1380,
+              top: 90,
               child: _build66kVBay(context, lines[5]),
             ),
 
             // =========================================================
-            // 3. المحولات الثلاثة بأذرع ممتدة طويلة وموصولة مباشرة بالبارات
+            // 3. المحولات الثلاثة (TR2, TR3, TR4)
             // =========================================================
-            // محول 2 (TR2): بين خط SAYEDA1 و NSABT3
+            // محول 2 (TR2): بين SAYEDA1 و NSABT3
             Positioned(
-              left: 315,
-              top: 156, // يتصل بالبارة الأولى BB1
+              left: 270,
+              top: bb1Y,
               child: _buildSingleTransformer(context, transformers[0]),
             ),
-            // محول 3 (TR3): بين خط NSABT1 و NSABT2
+            // محول 3 (TR3): بين NSABT1 و NSABT2
             Positioned(
-              left: 940,
-              top: 156, // يتصل بالبارة الأولى BB1
+              left: 1040,
+              top: bb1Y,
               child: _buildSingleTransformer(context, transformers[1]),
             ),
-            // محول 4 (TR4): بين خط NSABT2 و SAYEDA2
+            // محول 4 (TR4): يمين NSABT2 بجانب SAYEDA2
             Positioned(
-              left: 1245,
-              top: 156, // يتصل بالبارة الأولى BB1
+              left: 1250,
+              top: bb1Y,
               child: _buildSingleTransformer(context, transformers[2]),
             ),
 
             // =========================================================
-            // 4. قضبان 11kV وخلايا التوزيع السفلية (متصلة بأسفل المحولات مباشرة)
+            // 4. قضبان 11kV وخلايا التوزيع السفلية الـ 42 خلية
             // =========================================================
             Positioned(
               left: 0,
               right: 0,
-              top: 446, // تلتقي مباشرة مع خطوط الخرج الهابطة من المحولات
+              top: bb11kVY,
               child: _build11kVBusbarsAndCells(context),
             ),
           ],
@@ -145,13 +162,18 @@ class MaarofSldCanvas extends StatelessWidget {
     );
   }
 
-  /// بارة أفقية مستمرة تمتد بكامل عرض المحطة دون انقطاع مع قراءات الجهد
-  Widget _buildContinuousBusbar({
+
+
+
+
+  // =========================================================================
+  // ⚡ بارات الـ 66kV الخضراء المستمرة
+  // =========================================================================
+  Widget _build66kVContinuousBusbar({
     required String labelLeft,
     required String kvLeft,
     required String labelRight,
     required String kvRight,
-    required Color color,
     required bool isTop,
   }) {
     return IgnorePointer(
@@ -161,75 +183,56 @@ class MaarofSldCanvas extends StatelessWidget {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            // خط البارة الرئيسي الأبيض المستمر الممتد عبر كامل العرض
+            // خط البارة الرئيسي باللون الأخضر الليموني #00FF00
             Positioned(
-              left: 0,
-              right: 0,
+              left: 40,
+              right: 40,
               child: Container(
-                height: 3.2,
-                decoration: BoxDecoration(
-                  color: color,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withAlpha(100),
-                      blurRadius: 4,
-                      spreadRadius: 0.5,
-                    )
-                  ],
-                ),
+                height: 2.8,
+                color: const Color(0xFF00FF00),
               ),
             ),
-            // بيان الجهد يسار البارة
+            // بيان الجهد يسار
             Positioned(
               left: 4,
               top: isTop ? -18 : 6,
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '$labelLeft ',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    kvLeft,
-                    style: const TextStyle(
-                      color: Color(0xFF00E5FF),
-                      fontSize: 8.5,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text(labelLeft,
+                      style: const TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold)),
+                  Text(kvLeft,
+                      style: const TextStyle(
+                          color: Color(0xFF00FF00),
+                          fontSize: 9.0,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-            // بيان الجهد يمين البارة
+            // بيان الجهد يمين
             Positioned(
               right: 4,
               top: isTop ? -18 : 6,
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '$labelRight ',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    kvRight,
-                    style: const TextStyle(
-                      color: Color(0xFF00E5FF),
-                      fontSize: 8.5,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text(labelRight,
+                      style: const TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold)),
+                  Text(kvRight,
+                      style: const TextStyle(
+                          color: Color(0xFF00FF00),
+                          fontSize: 9.0,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -239,7 +242,9 @@ class MaarofSldCanvas extends StatelessWidget {
     );
   }
 
-  /// خلية خط 66kV فردية متصلة بالبارتين
+  // =========================================================================
+  // 🔌 خلية خط 66kV
+  // =========================================================================
   Widget _build66kVBay(BuildContext context, FeederBay line) {
     return Obx(() {
       final cbState = controller.switches[line.cb.id]?.state ?? line.cb.state;
@@ -252,15 +257,15 @@ class MaarofSldCanvas extends StatelessWidget {
       final busBState =
           controller.switches[line.busDsB?.id]?.state ?? SwitchState.open;
 
-      return Line66kVBayWidget(
+      return ScadaLine66kVBay(
         line: line,
         cbState: cbState,
         lineDsState: lineDsState,
         earthDsState: earthState,
         busDsAState: busAState,
         busDsBState: busBState,
-        bb1Y: 156.0,
-        bb2Y: 198.0,
+        bb1Y: bb1Y - 90,
+        bb2Y: bb2Y - 90,
         onCbTap: () => controller.toggleSwitch(line.cb.id),
         onLineDsTap: () {
           if (line.lineDs != null) {
@@ -286,204 +291,50 @@ class MaarofSldCanvas extends StatelessWidget {
     });
   }
 
-  /// 🔲 خلية كابلر الـ 66kV المطابقة للمخطط الفعلي (66kV Bus Coupler U-Loop & TIE Switches)
-  Widget _build66kVCouplerBay(BuildContext context) {
+  // =========================================================================
+  // 🔲 كابلر وسكاكين الربط (TIE) لبارات 66kV في المنتصف مطابق 100% لصورة الإسكادا
+  // =========================================================================
+  Widget _build66kVCouplerAndTieBay(BuildContext context) {
     return Obx(() {
       final cplrCb = controller.switches['CB_66_COUPLER'];
-      final cplrDs1 = controller.switches['DS_66_CPLR_1'];
-      final cplrDs2 = controller.switches['DS_66_CPLR_2'];
-      final tie1A = controller.switches['DS_66_TIE_1A'];
-      final tie2A = controller.switches['DS_66_TIE_2A'];
-      final tie1B = controller.switches['DS_66_TIE_1B'];
-      final tie2B = controller.switches['DS_66_TIE_2B'];
-
       final cplrCbState = cplrCb?.state ?? SwitchState.open;
-      final cplrDs1State = cplrDs1?.state ?? SwitchState.open;
-      final cplrDs2State = cplrDs2?.state ?? SwitchState.open;
-      final tie1AState = tie1A?.state ?? SwitchState.closed;
-      final tie2AState = tie2A?.state ?? SwitchState.closed;
-      final tie1BState = tie1B?.state ?? SwitchState.closed;
-      final tie2BState = tie2B?.state ?? SwitchState.closed;
+      final cplrDs1 =
+          controller.switches['DS_66_CPLR_1']?.state ?? SwitchState.open;
+      final cplrDs2 =
+          controller.switches['DS_66_CPLR_2']?.state ?? SwitchState.open;
+      final tie1A =
+          controller.switches['DS_66_TIE_1A']?.state ?? SwitchState.closed;
+      final tie2A =
+          controller.switches['DS_66_TIE_2A']?.state ?? SwitchState.closed;
+      final tie1B =
+          controller.switches['DS_66_TIE_1B']?.state ?? SwitchState.closed;
+      final tie2B =
+          controller.switches['DS_66_TIE_2B']?.state ?? SwitchState.closed;
 
-      return SizedBox(
-        width: 160,
-        height: 220,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // =========================================================
-            // أ. سكاكين الـ TIE الجانبية على البارتين (يسار الكابلر)
-            // =========================================================
-            // 1. سكينة TIE بارة 1 علوية يسار (BB1)
-            Positioned(
-              left: 2,
-              top: 146,
-              child: TieSwitchSymbol(
-                state: tie1AState,
-                width: 36,
-                height: 20,
-                onTap: () => controller.toggleSwitch('DS_66_TIE_1A'),
-              ),
-            ),
-            // 2. سكينة TIE بارة 2 سفلية يسار (BB2) مع كلمة TIE
-            Positioned(
-              left: 2,
-              top: 188,
-              child: TieSwitchSymbol(
-                state: tie2AState,
-                width: 36,
-                height: 20,
-                showLabel: true,
-                label: 'TIE',
-                onTap: () => controller.toggleSwitch('DS_66_TIE_2A'),
-              ),
-            ),
-
-            // =========================================================
-            // ب. سكاكين الـ TIE الجانبية على البارتين (يمين الكابلر)
-            // =========================================================
-            // 3. سكينة TIE بارة 1 علوية يمين (BB1)
-            Positioned(
-              right: 2,
-              top: 146,
-              child: TieSwitchSymbol(
-                state: tie1BState,
-                width: 36,
-                height: 20,
-                onTap: () => controller.toggleSwitch('DS_66_TIE_1B'),
-              ),
-            ),
-            // 4. سكينة TIE بارة 2 سفلية يمين (BB2) مع كلمة TIE
-            Positioned(
-              right: 2,
-              top: 188,
-              child: TieSwitchSymbol(
-                state: tie2BState,
-                width: 36,
-                height: 20,
-                showLabel: true,
-                label: 'TIE',
-                onTap: () => controller.toggleSwitch('DS_66_TIE_2B'),
-              ),
-            ),
-
-            // =========================================================
-            // ج. جسر الكابلر العلوي المقلوب (Inverted U-Shape Coupler Loop)
-            // =========================================================
-            // 1. اسم الكابلر CPLR في أعلى القوس
-            Positioned(
-              top: 10,
-              left: 0,
-              right: 0,
-              child: const Center(
-                child: Text(
-                  'CPLR',
-                  style: TextStyle(
-                    color: Color(0xFFFFA726), // برتقالي زاهي مثل صورة الإسكادا
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-            ),
-
-            // 2. السقف الأفقي للكابلر (Horizontal Header Line)
-            Positioned(
-              left: 58,
-              top: 30,
-              width: 44,
-              height: 2.5,
-              child: Container(color: Colors.white),
-            ),
-
-            // =========================================================
-            // د. الرجل اليسرى للكابلر (تنطلق من البارة السفلية BB2 وتصعد للأعلى)
-            // =========================================================
-            // خط صاعد من البارة السفلية BB2 (Y=198) حتى أسفل سكينة الكابلر 1 (Y=132)
-            Positioned(
-              left: 58,
-              top: 132,
-              width: 2.5,
-              height: 66,
-              child: Container(color: Colors.white),
-            ),
-            // سكينة الكابلر الأولى (DS1)
-            Positioned(
-              left: 49,
-              top: 108,
-              child: DisconnectorSymbol(
-                state: cplrDs1State,
-                size: 18,
-                onTap: () => controller.toggleSwitch('DS_66_CPLR_1'),
-              ),
-            ),
-            // خط واصل بين السكينة والقاطع
-            Positioned(
-              left: 58,
-              top: 80,
-              width: 2.5,
-              height: 28,
-              child: Container(color: Colors.white),
-            ),
-            // قاطع دائرة الكابلر (CB_66_COUPLER)
-            Positioned(
-              left: 49,
-              top: 56,
-              child: BreakerSymbol(
-                state: cplrCbState,
-                size: 20,
-                onTap: () => controller.toggleSwitch('CB_66_COUPLER'),
-              ),
-            ),
-            // خط صاعد من القاطع إلى السقف الأفقي
-            Positioned(
-              left: 58,
-              top: 30,
-              width: 2.5,
-              height: 26,
-              child: Container(color: Colors.white),
-            ),
-
-            // =========================================================
-            // هـ. الرجل اليمنى للكابلر (تنطلق من البارة العلوية BB1 وتصعد للأعلى)
-            // =========================================================
-            // خط صاعد من البارة العلوية BB1 (Y=156) حتى أسفل سكينة الكابلر 2 (Y=110)
-            Positioned(
-              left: 100,
-              top: 110,
-              width: 2.5,
-              height: 46,
-              child: Container(color: Colors.white),
-            ),
-            // سكينة الكابلر الثانية (DS2)
-            Positioned(
-              left: 91,
-              top: 86,
-              child: DisconnectorSymbol(
-                state: cplrDs2State,
-                size: 18,
-                onTap: () => controller.toggleSwitch('DS_66_CPLR_2'),
-              ),
-            ),
-            // خط صاعد من السكينة إلى السقف الأفقي
-            Positioned(
-              left: 100,
-              top: 30,
-              width: 2.5,
-              height: 56,
-              child: Container(color: Colors.white),
-            ),
-          ],
-        ),
+      return ScadaCouplerAndTieBayWidget(
+        cplrCbState: cplrCbState,
+        cplrDs1State: cplrDs1,
+        cplrDs2State: cplrDs2,
+        tie1AState: tie1A,
+        tie2AState: tie2A,
+        tie1BState: tie1B,
+        tie2BState: tie2B,
+        bb1Y: bb1Y - 90,
+        bb2Y: bb2Y - 90,
+        onCplrCbTap: () => controller.toggleSwitch('CB_66_COUPLER'),
+        onCplrDs1Tap: () => controller.toggleSwitch('DS_66_CPLR_1'),
+        onCplrDs2Tap: () => controller.toggleSwitch('DS_66_CPLR_2'),
+        onTie1ATap: () => controller.toggleSwitch('DS_66_TIE_1A'),
+        onTie2ATap: () => controller.toggleSwitch('DS_66_TIE_2A'),
+        onTie1BTap: () => controller.toggleSwitch('DS_66_TIE_1B'),
+        onTie2BTap: () => controller.toggleSwitch('DS_66_TIE_2B'),
       );
     });
   }
 
-  // =========================================================
-  // 🔄 محولات القدرة TR2, TR3, TR4 المطابقة للمخطط الحقيقي
-  // =========================================================
+  // =========================================================================
+  // 🔄 محول القدرة 66/11kV
+  // =========================================================================
   Widget _buildSingleTransformer(BuildContext context, TransformerModel tr) {
     return Obx(() {
       final priCbState =
@@ -500,10 +351,10 @@ class MaarofSldCanvas extends StatelessWidget {
           controller.switches['ES_NGR_${tr.id}']?.state ?? SwitchState.open;
 
       final busKv = tr.id == 'TR2'
-          ? '${controller.bus2Voltage.value}'
+          ? controller.bus2Voltage.value.toStringAsFixed(1)
           : tr.id == 'TR3'
-              ? '${controller.bus3Voltage.value}'
-              : '${controller.bus4Voltage.value}';
+              ? controller.bus3Voltage.value.toStringAsFixed(1)
+              : controller.bus4Voltage.value.toStringAsFixed(1);
 
       return TransformerBayWidget(
         transformer: tr,
@@ -524,164 +375,168 @@ class MaarofSldCanvas extends StatelessWidget {
     });
   }
 
-  // =========================================================
-  // 🏢 قضبان وخلايا 11kV السفلية
-  // =========================================================
+  // =========================================================================
+  // 🏢 قضبان وخلايا 11kV السفلية (الـ 42 خلية مع الخطوط الطولية الممتدة)
+  // =========================================================================
   Widget _build11kVBusbarsAndCells(BuildContext context) {
     return Obx(() {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // خط بارة 11kV الرئيسية الممتدة باللون البنفسجي
-          Row(
-            children: [
-              _build11kVBusbarLabel(
-                  'BB2', '${controller.bus2Voltage.value} KV'),
-              Expanded(
-                  child: Container(
-                      height: 3.5,
-                      color: const Color(0xFFFF00FF),
-                      margin: const EdgeInsets.symmetric(horizontal: 2))),
-              _build11kVBusbarLabel(
-                  'BB3', '${controller.bus3Voltage.value} KV'),
-              Expanded(
-                  child: Container(
-                      height: 3.5,
-                      color: const Color(0xFFFF00FF),
-                      margin: const EdgeInsets.symmetric(horizontal: 2))),
-              _build11kVBusbarLabel(
-                  'BB4', '${controller.bus4Voltage.value} KV'),
-              Expanded(
-                  child: Container(
-                      height: 3.5,
-                      color: const Color(0xFFFF00FF),
-                      margin: const EdgeInsets.symmetric(horizontal: 2))),
-            ],
+          // القسم 1 (14 خلية K01 حتى K14)
+          Expanded(
+            flex: 14,
+            child: _buildSectionColumn(
+              context,
+              sectionTitle: 'BB2',
+              sectionKv: '${controller.bus2Voltage.value} KV',
+              cells: controller.cells11kVSection1,
+            ),
           ),
-          const SizedBox(height: 4),
 
-          // شبكة الخلايا السفلية (Section 1, Section 2, Section 3)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 11,
-                child:
-                    _buildSectionCells(context, controller.cells11kVSection1),
-              ),
-              Container(width: 1.5, height: 135, color: Colors.white24),
-              Expanded(
-                flex: 10,
-                child:
-                    _buildSectionCells(context, controller.cells11kVSection2),
-              ),
-              Container(width: 1.5, height: 135, color: Colors.white24),
-              Expanded(
-                flex: 15,
-                child:
-                    _buildSectionCells(context, controller.cells11kVSection3),
-              ),
-            ],
+          // وصلة الربط (Tie Loop) بين القسم 1 والقسم 2
+          _build11kVTieBridge(),
+
+          // القسم 2 (14 خلية K15 حتى K28)
+          Expanded(
+            flex: 14,
+            child: _buildSectionColumn(
+              context,
+              sectionTitle: 'BB3',
+              sectionKv: '${controller.bus3Voltage.value} KV',
+              cells: controller.cells11kVSection2,
+            ),
+          ),
+
+          // وصلة الربط (Tie Loop) بين القسم 2 والقسم 3
+          _build11kVTieBridge(),
+
+          // القسم 3 (14 خلية K29 حتى K42)
+          Expanded(
+            flex: 14,
+            child: _buildSectionColumn(
+              context,
+              sectionTitle: 'BB4',
+              sectionKv: '${controller.bus4Voltage.value} KV',
+              cells: controller.cells11kVSection3,
+            ),
           ),
         ],
       );
     });
   }
 
-  Widget _build11kVBusbarLabel(String name, String kv) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(name,
-              style: const TextStyle(
+  Widget _buildSectionColumn(
+    BuildContext context, {
+    required String sectionTitle,
+    required String sectionKv,
+    required List<FeederBay> cells,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // بيان الجهد يطفو فوق البارة في مكانه الهندسي المطابق للصورة
+        Positioned(
+          top: -14,
+          left: 60,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$sectionTitle  ',
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold)),
-          Text(kv,
-              style: const TextStyle(
-                  color: Color(0xFFFF00FF),
-                  fontSize: 8.5,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
-                  fontWeight: FontWeight.w600)),
-        ],
-      ),
+                ),
+              ),
+              Text(
+                sectionKv,
+                style: const TextStyle(
+                  color: Color(0xFF00FF00),
+                  fontSize: 9.0,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // صف الـ 14 خلية متلاصقة لتشكل بارتها خطاً أفقياً مستمراً
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:
+              cells.map((cell) => _buildSingle11kVCell(context, cell)).toList(),
+        ),
+      ],
     );
   }
 
-  Widget _buildSectionCells(BuildContext context, List<FeederBay> cells) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          cells.map((cell) => _buildSingle11kVCell(context, cell)).toList(),
+  Widget _build11kVTieBridge() {
+    return SizedBox(
+      width: 26,
+      height: 310,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // خط قوس الربط العلوي
+          Positioned(
+            top: 8,
+            left: 0,
+            right: 0,
+            height: 18,
+            child: CustomPaint(
+              painter: _TieLoopPainter(),
+            ),
+          ),
+          // قاطع التاي المفتوح في منتصف القوس (مربع أخضر مفرغ)
+          const Positioned(
+            top: 2,
+            left: 7.5,
+            child: BreakerSymbol(
+              state: SwitchState.open,
+              size: 11.0,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSingle11kVCell(BuildContext context, FeederBay cell) {
     return Obx(() {
       final cbState = controller.switches[cell.cb.id]?.state ?? cell.cb.state;
-      final earthState =
-          controller.switches[cell.earthDs?.id]?.state ?? SwitchState.open;
 
-      return Container(
-        width: 32,
-        margin: const EdgeInsets.symmetric(horizontal: 0.5),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 1.5, height: 4, color: const Color(0xFFFF00FF)),
-
-            // قاطع الخلية 11kV
-            BreakerSymbol(
-              state: cbState,
-              size: 13,
-              onTap: () => controller.toggleSwitch(cell.cb.id),
-            ),
-
-            // سكينة التأريض مع رمز الأرضي ⏚
-            if (cell.earthDs != null) ...[
-              Container(width: 1.5, height: 2, color: const Color(0xFFFF00FF)),
-              EarthBranchWidget(
-                state: earthState,
-                width: 22,
-                height: 12,
-                onTap: () => controller.toggleSwitch(cell.earthDs!.id),
-              ),
-            ] else
-              Container(width: 1.5, height: 4, color: const Color(0xFFFF00FF)),
-
-            const SizedBox(height: 2),
-
-            // قراءة التيار أو MVAR
-            CellCurrentTag(
-              currentA: cell.measurements.currentA,
-              mvar: cell.measurements.mvar,
-            ),
-
-            const SizedBox(height: 3),
-
-            // اسم الخلية مكتوب رأسياً باللغة العربية
-            RotatedBox(
-              quarterTurns: 3,
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 75),
-                child: Text(
-                  cell.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 7.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      return Scada11kVCellWidget(
+        cell: cell,
+        cbState: cbState,
+        onCbTap: () => controller.toggleSwitch(cell.cb.id),
       );
     });
   }
+}
+
+/// رسم قوس الربط العلوي بين أقسام بارة 11kV
+class _TieLoopPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF00E5FF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(0, 4)
+      ..lineTo(size.width, 4)
+      ..lineTo(size.width, size.height);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

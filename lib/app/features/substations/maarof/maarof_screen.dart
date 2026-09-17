@@ -9,7 +9,8 @@ import 'maarof_controller.dart';
 import 'sld_canvas.dart';
 
 /// 🏢 شاشة السينجل لاين دياجرام لمحطة معروف (MAAROUF 66/11 kV)
-/// تعمل بملء الشاشة في الوضع الأفقي (Landscape) بنمط المحاكيات والألعاب
+/// واجهة مراقبة وتحكم تفاعلية (SCADA / HMI) تتكيف تلقائياً مع شاشات الويندوز والموبايل
+/// تدعم التكبير والسحب بالفأرة، اختصارات لوحة المفاتيح، واللمس
 class MaarofSubstationScreen extends StatefulWidget {
   const MaarofSubstationScreen({super.key});
 
@@ -20,11 +21,12 @@ class MaarofSubstationScreen extends StatefulWidget {
 class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
   late final MaarofController controller;
   late final TransformationController _transformationController;
+  final ValueNotifier<bool> _isDragging = ValueNotifier<bool>(false);
   double _lastLayoutWidth = 0;
   double _lastLayoutHeight = 0;
 
-  static const double _canvasW = 1560.0;
-  static const double _canvasH = 640.0;
+  static const double _canvasW = 1600.0;
+  static const double _canvasH = 940.0;
 
   @override
   void initState() {
@@ -32,31 +34,41 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
     controller = Get.put(MaarofController());
     _transformationController = TransformationController();
 
-    // 🔄 قفل الشاشة على الوضع الأفقي (Landscape) بنمط شاشات المراقبة
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // 🔄 قفل الشاشة على الوضع الأفقي (Landscape) لأجهزة الموبايل فقط
+    if (GetPlatform.isMobile) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
 
     // 📐 احتساب مقياس ابتدائي فوري حتى لا يظهر المخطط ضخماً في الفريم الأول
     try {
       final view = WidgetsBinding.instance.platformDispatcher.views.first;
       final size = view.physicalSize / view.devicePixelRatio;
       if (size.width > 0 && size.height > 0) {
-        final double w = size.width > size.height ? size.width : size.height;
-        final double h = (size.width > size.height ? size.height : size.width) - 40.0;
+        final double w = GetPlatform.isMobile
+            ? (size.width > size.height ? size.width : size.height)
+            : size.width;
+        final double h = (GetPlatform.isMobile
+                ? (size.width > size.height ? size.height : size.width)
+                : size.height) -
+            40.0;
         _fitDiagramToScreen(w, h);
       }
     } catch (_) {}
   }
 
   void _restoreOrientation() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // 🔄 استعادة أوضاع الشاشة الطبيعية للموبايل فقط
+    if (GetPlatform.isMobile) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
   }
 
   void _handleExit(BuildContext context) {
@@ -71,6 +83,7 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
   @override
   void dispose() {
     _transformationController.dispose();
+    _isDragging.dispose();
     // 🔄 استعادة أوضاع الشاشة الطبيعية
     _restoreOrientation();
     super.dispose();
@@ -94,8 +107,9 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
     final double dx = (viewportWidth - scaledW) / 2.0;
     final double dy = (viewportHeight - scaledH) / 2.0;
 
-    _transformationController.value = Matrix4.diagonal3Values(finalScale, finalScale, 1.0)
-      ..setTranslationRaw(dx > 0 ? dx : 0.0, dy > 0 ? dy : 0.0, 0.0);
+    _transformationController.value =
+        Matrix4.diagonal3Values(finalScale, finalScale, 1.0)
+          ..setTranslationRaw(dx > 0 ? dx : 0.0, dy > 0 ? dy : 0.0, 0.0);
   }
 
   /// 🔍 تكبير المخطط خطوة واحدة
@@ -135,38 +149,52 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          _restoreOrientation();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF090B12),
-        appBar: _buildScadaHeader(context),
-        body: SafeArea(
-          child: ClipRect(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if ((_lastLayoutWidth != constraints.maxWidth ||
-                        _lastLayoutHeight != constraints.maxHeight) &&
-                    constraints.maxWidth > 0 &&
-                    constraints.maxHeight > 0) {
-                  _lastLayoutWidth = constraints.maxWidth;
-                  _lastLayoutHeight = constraints.maxHeight;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
-                      _fitDiagramToScreen(
-                          _lastLayoutWidth, _lastLayoutHeight);
-                    }
-                  });
-                }
+    Widget content = Scaffold(
+      backgroundColor: Colors.black,
+      appBar: _buildScadaHeader(context),
+      body: SafeArea(
+        child: ClipRect(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if ((_lastLayoutWidth != constraints.maxWidth ||
+                      _lastLayoutHeight != constraints.maxHeight) &&
+                  constraints.maxWidth > 0 &&
+                  constraints.maxHeight > 0) {
+                _lastLayoutWidth = constraints.maxWidth;
+                _lastLayoutHeight = constraints.maxHeight;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight);
+                  }
+                });
+              }
 
-                return Stack(
-                  children: [
-                    Positioned.fill(
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: _isDragging,
+                      builder: (context, isDragging, childWidget) {
+                        return MouseRegion(
+                          cursor: isDragging
+                              ? SystemMouseCursors.grabbing
+                              : SystemMouseCursors.grab,
+                          child: childWidget,
+                        );
+                      },
                       child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (e) {
+                          if (e.buttons == kPrimaryMouseButton) {
+                            _isDragging.value = true;
+                          }
+                        },
+                        onPointerUp: (_) {
+                          _isDragging.value = false;
+                        },
+                        onPointerCancel: (_) {
+                          _isDragging.value = false;
+                        },
                         onPointerSignal: (pointerSignal) {
                           if (pointerSignal is PointerScrollEvent) {
                             final double delta = pointerSignal.scrollDelta.dy;
@@ -178,31 +206,70 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
                         },
                         child: InteractiveViewer(
                           transformationController: _transformationController,
-                          boundaryMargin: const EdgeInsets.symmetric(
-                              horizontal: 100, vertical: 60),
+                          boundaryMargin: const EdgeInsets.all(double.infinity),
                           minScale: 0.10,
                           maxScale: 5.0,
                           panEnabled: true,
                           scaleEnabled: true,
+                          panAxis: PanAxis.free,
+                          interactionEndFrictionCoefficient: 0.005,
                           trackpadScrollCausesScale: true,
                           constrained: false,
-                          child: MaarofSldCanvas(),
+                          child: MaarofSldCanvas(
+                            onSoeTap: () => _showEventsDialog(context),
+                            onNetTap: () => _showApiSettingsDialog(context),
+                          ),
                         ),
                       ),
                     ),
-                    // 🎛️ شريط التحكم بالزووم الطافي (Floating Zoom Controller)
-                    Positioned(
-                      bottom: 12.h,
-                      left: 14.w,
-                      child: _buildFloatingZoomControls(),
-                    ),
-                  ],
-                );
-              },
-            ),
+                  ),
+                  // 🎛️ شريط التحكم بالزووم الطافي (Floating Zoom Controller)
+                  Positioned(
+                    bottom: 12.h,
+                    left: 14.w,
+                    child: _buildFloatingZoomControls(),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
+    );
+
+    // ⌨️ دعم اختصارات لوحة المفاتيح في بيئة الويندوز / سطح المكتب
+    if (!GetPlatform.isMobile) {
+      content = CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              _handleExit(context),
+          const SingleActivator(LogicalKeyboardKey.equal): _zoomIn,
+          const SingleActivator(LogicalKeyboardKey.add): _zoomIn,
+          const SingleActivator(LogicalKeyboardKey.numpadAdd): _zoomIn,
+          const SingleActivator(LogicalKeyboardKey.minus): _zoomOut,
+          const SingleActivator(LogicalKeyboardKey.numpadSubtract): _zoomOut,
+          const SingleActivator(LogicalKeyboardKey.digit0): () =>
+              _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight),
+          const SingleActivator(LogicalKeyboardKey.numpad0): () =>
+              _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight),
+          const SingleActivator(LogicalKeyboardKey.home): () =>
+              _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight),
+        },
+        child: Focus(
+          autofocus: true,
+          child: content,
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _restoreOrientation();
+        }
+      },
+      child: content,
     );
   }
 
@@ -296,19 +363,19 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
     );
   }
 
-  /// 🔝 الهيدر العلوي بنمط شاشات الـ SCADA العريضة بحجم مدمج وأنيق
+  /// 🔝 الهيدر العلوي لشاشة السكادا مع مفتاح المحاكاة وسجل الأحداث
   PreferredSizeWidget _buildScadaHeader(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF141724),
-      elevation: 2,
-      toolbarHeight: 36.h,
+      backgroundColor: const Color(0xFF0C0F1A),
+      elevation: 1,
+      toolbarHeight: 38.h,
       automaticallyImplyLeading: false,
-      leadingWidth: 38.w,
+      leadingWidth: 42.w,
       leading: IconButton(
         padding: EdgeInsets.zero,
-        tooltip: 'خروج من محطة معروف',
+        tooltip: 'خروج من محطة معروف (ESC)',
         icon: Container(
-          padding: EdgeInsets.all(3.5.r),
+          padding: EdgeInsets.all(4.r),
           decoration: BoxDecoration(
             color: const Color(0xFFFF2222).withValues(alpha: 0.20),
             borderRadius: BorderRadius.circular(6.r),
@@ -328,128 +395,50 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
       titleSpacing: 0,
       title: FittedBox(
         fit: BoxFit.scaleDown,
-        alignment: Alignment.centerRight,
+        alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // أرقام التليفونات الداخلية جهة اليسار
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-              margin: EdgeInsets.symmetric(horizontal: 3.w),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A0D18),
-                borderRadius: BorderRadius.circular(4.r),
-                border: Border.all(color: Colors.white12, width: 0.8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('IP-TEL1: 111400 | IP-TEL2: 211400',
-                      style: TextStyle(
-                          fontSize: 6.5.sp,
-                          color: Colors.white70,
-                          fontFamily: 'monospace')),
-                  Text('H-Line: 907018 | EXT: 25753272',
-                      style: TextStyle(
-                          fontSize: 6.5.sp,
-                          color: Colors.white70,
-                          fontFamily: 'monospace')),
-                ],
+            Text(
+              'معروف',
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFD4AF37),
               ),
             ),
-
             SizedBox(width: 8.w),
-
-            // اسم المحطة ولمبة الاتصال في المنتصف
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'معروف',
-                  style: TextStyle(
-                    fontSize: 9.5.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amberAccent,
+            Obx(() => Container(
+                  width: 7.r,
+                  height: 7.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: controller.isConnectedToScada.value
+                        ? Colors.greenAccent
+                        : (controller.isSimulationMode.value
+                            ? Colors.cyanAccent
+                            : Colors.orangeAccent),
                   ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Obx(() => Container(
-                          width: 6.r,
-                          height: 6.r,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: controller.isConnectedToScada.value
-                                ? Colors.greenAccent
-                                : (controller.isSimulationMode.value
-                                    ? Colors.cyanAccent
-                                    : Colors.orangeAccent),
-                            boxShadow: [
-                              BoxShadow(
-                                color: controller.isConnectedToScada.value
-                                    ? Colors.greenAccent.withAlpha(180)
-                                    : Colors.cyanAccent.withAlpha(180),
-                                blurRadius: 4,
-                              )
-                            ],
-                          ),
-                        )),
-                    SizedBox(width: 4.w),
-                    Text(
-                      'MAAROUF',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: 4.w),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(2.r),
-                      ),
-                      child: Text('Comm',
-                          style: TextStyle(
-                              fontSize: 6.5.sp, color: Colors.white70)),
-                    ),
-                  ],
-                ),
-              ],
+                )),
+            SizedBox(width: 6.w),
+            Text(
+              'MAAROUF',
+              style: TextStyle(
+                fontSize: 11.5.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+                color: Colors.white,
+              ),
             ),
-
-            SizedBox(width: 8.w),
-
-            // أرقام الطوارئ والموبايل جهة اليمين
+            SizedBox(width: 6.w),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-              margin: EdgeInsets.symmetric(horizontal: 3.w),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A0D18),
-                borderRadius: BorderRadius.circular(4.r),
-                border: Border.all(color: Colors.white12, width: 0.8),
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(2.r),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('O : 01206640387',
-                      style: TextStyle(
-                          fontSize: 6.5.sp,
-                          color: Colors.orangeAccent,
-                          fontFamily: 'monospace')),
-                  Text('O : 01206640457',
-                      style: TextStyle(
-                          fontSize: 6.5.sp,
-                          color: Colors.orangeAccent,
-                          fontFamily: 'monospace')),
-                ],
-              ),
+              child: Text('Comm',
+                  style: TextStyle(fontSize: 7.sp, color: Colors.white70)),
             ),
           ],
         ),
@@ -466,21 +455,22 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
         ),
         // مفتاح تبديل وضع المحاكاة / الربط الحي مصغر
         Obx(() => Container(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0),
-              margin: EdgeInsets.symmetric(horizontal: 2.w),
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+              margin: EdgeInsets.symmetric(horizontal: 4.w),
               decoration: BoxDecoration(
                 color: const Color(0xFF0C0F1A),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: Colors.white12, width: 0.6),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white24, width: 0.8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Transform.scale(
-                    scale: 0.55,
+                    scale: 0.65,
                     child: Switch(
                       value: controller.isSimulationMode.value,
-                      activeTrackColor: Colors.cyanAccent.withAlpha(160),
+                      activeTrackColor:
+                          Colors.cyanAccent.withValues(alpha: 0.6),
                       inactiveThumbColor: Colors.greenAccent,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onChanged: (val) => controller.toggleSimulationMode(val),
@@ -489,53 +479,26 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
                   Text(
                     controller.isSimulationMode.value ? 'محاكاة' : 'بث حي',
                     style: TextStyle(
-                      fontSize: 7.5.sp,
+                      fontSize: 8.5.sp,
                       color: controller.isSimulationMode.value
                           ? Colors.cyanAccent
                           : Colors.greenAccent,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(width: 3.w),
+                  SizedBox(width: 4.w),
                 ],
               ),
             )),
-        // أزرار التحكم بالزووم في شريط العنوان
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
-          icon: Icon(Icons.zoom_in_rounded,
-              size: 15.sp, color: Colors.cyanAccent),
-          tooltip: 'تكبير المحطة (+)',
-          onPressed: _zoomIn,
-        ),
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
-          icon: Icon(Icons.zoom_out_rounded,
-              size: 15.sp, color: Colors.cyanAccent),
-          tooltip: 'تصغير المحطة (-)',
-          onPressed: _zoomOut,
-        ),
-        // زر ضبط وتصغير العرض لملء الشاشة وتوسيط المحطة مصغر
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
-          icon: Icon(Icons.fullscreen_exit_rounded,
-              size: 14.sp, color: Colors.cyanAccent),
-          tooltip: 'إعادة ضبط وتوسيط المحطة',
-          onPressed: () =>
-              _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight),
-        ),
         // زر إعدادات رابط الـ API مصغر
         IconButton(
           padding: EdgeInsets.zero,
           constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
-          icon: Icon(Icons.settings, size: 12.sp, color: Colors.white70),
+          icon: Icon(Icons.settings, size: 13.sp, color: Colors.white70),
           tooltip: 'إعدادات الاتصال بالـ API',
           onPressed: () => _showApiSettingsDialog(context),
         ),
-        SizedBox(width: 4.w),
+        SizedBox(width: 6.w),
       ],
     );
   }

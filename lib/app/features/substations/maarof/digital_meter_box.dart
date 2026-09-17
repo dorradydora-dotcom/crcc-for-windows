@@ -57,7 +57,7 @@ class DigitalMeterBox extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 8.5,
+                fontSize: 10.5,
                 color: headerColor,
                 fontWeight: FontWeight.bold,
               ),
@@ -88,7 +88,7 @@ class DigitalMeterBox extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.clip,
               style: TextStyle(
-                fontSize: 8.5,
+                fontSize: 9.5,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'monospace',
                 color: highlight
@@ -101,15 +101,15 @@ class DigitalMeterBox extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           SizedBox(
-            width: 32,
+            width: 34,
             child: Text(
               unit,
               textAlign: TextAlign.left,
               maxLines: 1,
               overflow: TextOverflow.clip,
               style: const TextStyle(
-                fontSize: 7.5,
-                color: Colors.white54,
+                fontSize: 8.5,
+                color: Colors.white70,
                 fontFamily: 'monospace',
               ),
             ),
@@ -137,7 +137,7 @@ class CellCurrentTag extends StatelessWidget {
       return Text(
         '${mvar!.toStringAsFixed(1)} MVAR',
         style: const TextStyle(
-          fontSize: 7.5,
+          fontSize: 9.5,
           color: Color(0xFF00E676),
           fontWeight: FontWeight.bold,
           fontFamily: 'monospace',
@@ -148,7 +148,7 @@ class CellCurrentTag extends StatelessWidget {
     return Text(
       '${currentA.toStringAsFixed(1)} A',
       style: TextStyle(
-        fontSize: 7.5,
+        fontSize: 9.5,
         color: currentA > 0 ? const Color(0xFF00E676) : Colors.white38,
         fontWeight: FontWeight.bold,
         fontFamily: 'monospace',

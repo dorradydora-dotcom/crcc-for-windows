@@ -11,15 +11,15 @@ class MaarofController extends GetxController {
   final RxString apiBaseUrl = 'http://127.0.0.1:8000/api/v1/telemetry/live'.obs;
 
   // ⚡ قضبان التوزيع 66kV
-  final RxDouble bus1AVoltage = 63.96.obs;
-  final RxDouble bus2AVoltage = 63.59.obs;
-  final RxDouble bus1BVoltage = 64.19.obs;
-  final RxDouble bus2BVoltage = 64.29.obs;
+  final RxDouble bus1AVoltage = 65.80.obs;
+  final RxDouble bus2AVoltage = 64.97.obs;
+  final RxDouble bus1BVoltage = 65.99.obs;
+  final RxDouble bus2BVoltage = 65.48.obs;
 
-  // ⚡ قضبان التوزيع 11kV
-  final RxDouble bus2Voltage = 10.55.obs;
-  final RxDouble bus3Voltage = 10.61.obs;
-  final RxDouble bus4Voltage = 10.50.obs;
+  // ⚡ قضبان التوزيع 11kV / 21kV
+  final RxDouble bus2Voltage = 21.0.obs;
+  final RxDouble bus3Voltage = 10.82.obs;
+  final RxDouble bus4Voltage = 10.56.obs;
 
   // 📋 خريطة لجميع المفاتيح لسرعة الوصول والتحديث
   final RxMap<String, SwitchItem> switches = <String, SwitchItem>{}.obs;
@@ -123,12 +123,72 @@ class MaarofController extends GetxController {
 
     // 2. خطوط الـ 66kV (AZBAKIA, SAYEDA1, NSABT3, NSABT1, NSABT2, SAYEDA2)
     final lineConfigs = [
-      {'id': 'AZBAKIA', 'name': 'AZBAKIA', 'code': 'K40', 'cable': '1 X 800 mm²', 'mw': 0.0, 'mvar': 0.1, 'mva': 0.1, 'a': 2.0, 'bus': 'A'},
-      {'id': 'SAYEDA1', 'name': 'SAYEDA1', 'code': 'K41', 'cable': '', 'mw': 13.0, 'mvar': 3.4, 'mva': 13.5, 'a': 122.7, 'bus': 'A'},
-      {'id': 'NSABT3', 'name': 'NSABT3', 'code': 'K42', 'cable': '', 'mw': -23.8, 'mvar': -7.6, 'mva': 25.0, 'a': 227.0, 'bus': 'A'},
-      {'id': 'NSABT1', 'name': 'NSABT1', 'code': 'K43', 'cable': '', 'mw': -22.5, 'mvar': -11.6, 'mva': 25.4, 'a': 228.4, 'bus': 'B'},
-      {'id': 'NSABT2', 'name': 'NSABT2', 'code': 'K44', 'cable': '1 X 800 mm²', 'mw': 0.0, 'mvar': 0.0, 'mva': 0.0, 'a': 231.2, 'bus': 'B'},
-      {'id': 'SAYEDA2', 'name': 'SAYEDA2', 'code': 'K45', 'cable': '', 'mw': 0.0, 'mvar': 0.0, 'mva': 14.1, 'a': 123.0, 'bus': 'B'},
+      {
+        'id': 'AZBAKIA',
+        'name': 'الأزبكية',
+        'code': 'AZBAKIA',
+        'cable': '1 X 800 mm²',
+        'mw': 0.0,
+        'mvar': 0.1,
+        'mva': 0.1,
+        'a': 1.0,
+        'bus': 'A'
+      },
+      {
+        'id': 'SAYEDA1',
+        'name': 'السيدة 1',
+        'code': 'SAYEDA1',
+        'cable': '',
+        'mw': 12.1,
+        'mvar': 3.3,
+        'mva': 12.6,
+        'a': 111.3,
+        'bus': 'A'
+      },
+      {
+        'id': 'NSABT3',
+        'name': 'ن السبتية 3',
+        'code': 'NSABT3',
+        'cable': '',
+        'mw': -20.1,
+        'mvar': -6.8,
+        'mva': 21.3,
+        'a': 188.9,
+        'bus': 'A'
+      },
+      {
+        'id': 'NSABT1',
+        'name': 'ن السبتية 1',
+        'code': 'NSABT1',
+        'cable': '',
+        'mw': -19.2,
+        'mvar': -10.1,
+        'mva': 21.7,
+        'a': 191.2,
+        'bus': 'B'
+      },
+      {
+        'id': 'NSABT2',
+        'name': 'ن السبتية 2',
+        'code': 'NSABT2',
+        'cable': '1 X 800 mm²',
+        'mw': 12.4,
+        'mvar': -2.9,
+        'mva': 12.7,
+        'a': 197.3,
+        'bus': 'B'
+      },
+      {
+        'id': 'SAYEDA2',
+        'name': 'السيدة 2',
+        'code': 'SAYEDA2',
+        'cable': '',
+        'mw': 12.0,
+        'mvar': 5.4,
+        'mva': 13.2,
+        'a': 113.8,
+        'bus': 'B'
+      },
     ];
 
     for (var cfg in lineConfigs) {
@@ -200,22 +260,52 @@ class MaarofController extends GetxController {
         'id': 'TR2',
         'name': 'TR2',
         'tap': 19,
-        'pri_mw': 9.4, 'pri_mvar': 2.8, 'pri_mva': 9.8, 'pri_a': 88.7, 'pri_pf': 0.99,
-        'sec_mw': -8.9, 'sec_mvar': -1.4, 'sec_mva': 9.1, 'sec_a': 542.5, 'sec_pf': 1.0,
+        'dsA': SwitchState.closed, // على بارة 1 (BB1)
+        'dsB': SwitchState.open,   // على بارة 2 (BB2)
+        'pri_mw': 15.0,
+        'pri_mvar': 0.0,
+        'pri_mva': 15.0,
+        'pri_a': 412.0,
+        'pri_pf': 1.00,
+        'sec_mw': -15.0,
+        'sec_mvar': 0.0,
+        'sec_mva': 15.0,
+        'sec_a': 412.0,
+        'sec_pf': 1.0,
       },
       {
         'id': 'TR3',
         'name': 'TR3',
         'tap': 19,
-        'pri_mw': 11.0, 'pri_mvar': 2.4, 'pri_mva': 11.4, 'pri_a': 102.0, 'pri_pf': 0.98,
-        'sec_mw': -11.0, 'sec_mvar': -1.9, 'sec_mva': 11.1, 'sec_a': 615.0, 'sec_pf': 0.99,
+        'dsA': SwitchState.open,   // على بارة 1 (BB1)
+        'dsB': SwitchState.closed, // على بارة 2 (BB2)
+        'pri_mw': 8.7,
+        'pri_mvar': 1.8,
+        'pri_mva': 8.9,
+        'pri_a': 79.4,
+        'pri_pf': 0.98,
+        'sec_mw': -8.7,
+        'sec_mvar': -1.5,
+        'sec_mva': 8.9,
+        'sec_a': 475.0,
+        'sec_pf': 0.98,
       },
       {
         'id': 'TR4',
         'name': 'TR4',
         'tap': 19,
-        'pri_mw': 10.9, 'pri_mvar': 3.1, 'pri_mva': 11.4, 'pri_a': 108.1, 'pri_pf': 0.98,
-        'sec_mw': -7.0, 'sec_mvar': -2.0, 'sec_mva': 7.2, 'sec_a': 402.5, 'sec_pf': 0.98,
+        'dsA': SwitchState.closed, // على بارة 1 (BB1)
+        'dsB': SwitchState.open,   // على بارة 2 (BB2)
+        'pri_mw': 7.6,
+        'pri_mvar': 2.3,
+        'pri_mva': 7.9,
+        'pri_a': 72.0,
+        'pri_pf': 0.96,
+        'sec_mw': -4.8,
+        'sec_mvar': -1.5,
+        'sec_mva': 5.0,
+        'sec_a': 410.0,
+        'sec_pf': 0.95,
       },
     ];
 
@@ -242,7 +332,7 @@ class MaarofController extends GetxController {
         name: 'سكينة بارة A محول $id',
         tag: '[PCS-9710-TU1]MAAROUF_${id}_BUS_DS_A',
         type: SwitchType.disconnector,
-        state: SwitchState.closed,
+        state: (cfg['dsA'] as SwitchState?) ?? SwitchState.closed,
         voltageLevel: '66kV',
       ));
       final busDsB = _registerSwitch(SwitchItem(
@@ -250,7 +340,7 @@ class MaarofController extends GetxController {
         name: 'سكينة بارة B محول $id',
         tag: '[PCS-9710-TU1]MAAROUF_${id}_BUS_DS_B',
         type: SwitchType.disconnector,
-        state: SwitchState.open,
+        state: (cfg['dsB'] as SwitchState?) ?? SwitchState.open,
         voltageLevel: '66kV',
       ));
       final ngrDs = _registerSwitch(SwitchItem(
@@ -273,8 +363,8 @@ class MaarofController extends GetxController {
       transformers.add(TransformerModel(
         id: id,
         name: cfg['name'] as String,
-        specs: '66/11KV 25MVA',
-        manufacturer: 'Maco',
+        specs: '66/23.5 KV 40 MVA',
+        manufacturer: 'MACO',
         tapPosition: cfg['tap'] as int,
         primaryCb: priCb,
         secondaryCb: secCb,
@@ -299,60 +389,99 @@ class MaarofController extends GetxController {
       ));
     }
 
-    // 4. خلايا الـ 11kV - القسم 1 (BB2 - اليسار)
+    // 4. خلايا الـ 11kV - القسم 1 (BB2 - 14 خلية K01 حتى K14)
     final sec1Feeders = [
-      {'name': 'BUS COUPLER (2-4)', 'code': 'K01', 'a': 0.0, 'isCoupler': true},
-      {'name': 'ثبات (2)', 'code': 'K02', 'a': 110.0},
-      {'name': 'الجلاء الجديد', 'code': 'K03', 'a': 74.0},
-      {'name': 'المحكمة', 'code': 'K04', 'a': 15.0},
-      {'name': 'خروج كشك الفلكى', 'code': 'K05', 'a': 98.0},
-      {'name': 'خروج كشك هدى شعراوى (1)', 'code': 'K06', 'a': 105.0},
-      {'name': 'سينما ميامى', 'code': 'K07', 'a': 55.0},
-      {'name': 'هدى شعراوى (2)', 'code': 'K08', 'a': 45.0},
-      {'name': 'مسرح الهوسابير', 'code': 'K09', 'a': 82.0},
-      {'name': 'MEASUREMENT CELL (1)', 'code': 'K10', 'a': 0.0, 'isCap': true, 'mvar': 1.6},
-      {'name': 'BUS RISER (1-3)', 'code': 'K11', 'a': 0.0, 'isRiser': true},
+      {
+        'name': 'BUS COUPLER (2-4)',
+        'code': 'K01',
+        'a': -0.3,
+        'isCoupler': true
+      },
+      {'name': 'مكثف (2)', 'code': 'K02', 'a': 0.0, 'isCap': true, 'mvar': 0.0},
+      {'name': 'البستان', 'code': 'K03', 'a': 119.4},
+      {'name': 'المتحف الاسلامى', 'code': 'K04', 'a': 49.3},
+      {'name': '', 'code': 'K05', 'a': 0.0, 'isOpen': true},
+      {'name': 'الدوحة (1)', 'code': 'K06', 'a': 1.3},
+      {'name': 'ملحق تجارى (2)', 'code': 'K07', 'a': 13.7},
+      {'name': 'هيلتون رمسيس (2)', 'code': 'K08', 'a': 77.2},
+      {'name': 'قصر النيل', 'code': 'K09', 'a': 39.7},
+      {'name': 'محول مساعد (1)', 'code': 'K10', 'a': -0.2},
+      {'name': 'جراج الاوبرا', 'code': 'K11', 'a': 133.0},
+      {'name': 'موزع معروف', 'code': 'K12', 'a': 26.8},
+      {'name': 'MEASUREMENT CELL(2)', 'code': 'K13', 'a': 0.0},
+      {
+        'name': 'BUS RISER (2-3)',
+        'code': 'K14',
+        'a': 0.0,
+        'isRiser': true,
+        'isOpen': true
+      },
     ];
 
     for (var f in sec1Feeders) {
       cells11kVSection1.add(_create11kVFeeder(f, 'SEC1'));
     }
 
-    // 5. خلايا الـ 11kV - القسم 2 (BB3 - الوسط)
+    // 5. خلايا الـ 11kV - القسم 2 (BB3 - 14 خلية K15 حتى K28)
     final sec2Feeders = [
-      {'name': 'BUS COUPLER (1-3)', 'code': 'K20', 'a': 0.0, 'isCoupler': true},
-      {'name': 'MEASUREMENT CELL (3)', 'code': 'K21', 'a': 0.0, 'isCap': true, 'mvar': 1.6},
-      {'name': 'فرنسية (1)', 'code': 'K22', 'a': 110.0},
-      {'name': 'فرنسية (2)', 'code': 'K23', 'a': 152.0},
-      {'name': 'كشك سليم', 'code': 'K24', 'a': 105.0},
-      {'name': 'كشك رشدى', 'code': 'K25', 'a': 2.0},
-      {'name': 'طلمبات مياه شبرا', 'code': 'K26', 'a': 88.0},
-      {'name': 'عمارة المحامين (2)', 'code': 'K27', 'a': 74.7},
-      {'name': 'طلمبات رمسيس و الجلاء (2)', 'code': 'K28', 'a': 58.0},
-      {'name': 'طلمبات رمسيس و الجلاء (1)', 'code': 'K29', 'a': 115.0},
+      {
+        'name': 'BUS COUPLER (2-3)',
+        'code': 'K15',
+        'a': -1.4,
+        'isCoupler': true
+      },
+      {'name': 'MEASUREMENT CELL(3)', 'code': 'K16', 'a': 0.0},
+      {'name': 'مكثف (3)', 'code': 'K17', 'a': 0.0, 'isCap': true, 'mvar': 0.0},
+      {'name': 'توفيقية (1)', 'code': 'K18', 'a': 142.8},
+      {'name': 'توفيقية (2)', 'code': 'K19', 'a': 136.3},
+      {'name': 'التلفزيون', 'code': 'K20', 'a': 2.0},
+      {'name': '', 'code': 'K21', 'a': 0.0, 'isOpen': true},
+      {'name': 'مثلث ماسبيرو (2)', 'code': 'K22', 'a': 41.7},
+      {'name': 'شامبليون', 'code': 'K23', 'a': 51.0},
+      {'name': 'ملحق تجارى (1)', 'code': 'K24', 'a': 13.6},
+      {'name': 'هيلتون رمسيس (1)', 'code': 'K25', 'a': 34.0},
+      {'name': 'مثلث ماسبيرو (1)', 'code': 'K26', 'a': 42.5},
+      {'name': 'الدوحة 2', 'code': 'K27', 'a': 11.1},
+      {
+        'name': 'BUS RISER (3-4)',
+        'code': 'K28',
+        'a': 0.0,
+        'isRiser': true,
+        'isOpen': true
+      },
     ];
 
     for (var f in sec2Feeders) {
       cells11kVSection2.add(_create11kVFeeder(f, 'SEC2'));
     }
 
-    // 6. خلايا الـ 11kV - القسم 3 (BB4 - اليمين)
+    // 6. خلايا الـ 11kV - القسم 3 (BB4 - 14 خلية K29 حتى K42)
     final sec3Feeders = [
-      {'name': 'BUS RISER (3-4)', 'code': 'K30', 'a': 0.0, 'isRiser': true},
-      {'name': 'BUS COUPLER (3-4)', 'code': 'K31', 'a': 0.0, 'isCoupler': true},
-      {'name': 'الشركات', 'code': 'K32', 'a': 115.0},
-      {'name': 'الصرف المغطى', 'code': 'K33', 'a': 130.0},
-      {'name': 'المعهد الفنى', 'code': 'K34', 'a': 150.0},
-      {'name': 'البوستة', 'code': 'K35', 'a': 47.0},
-      {'name': 'سنترال الأوبرا', 'code': 'K36', 'a': 31.0},
-      {'name': 'سينما كايرو', 'code': 'K37', 'a': 31.0},
-      {'name': 'الفردوس (2)', 'code': 'K38', 'a': 45.0},
-      {'name': 'الفردوس (1)', 'code': 'K39', 'a': 220.0},
-      {'name': 'كشك 23', 'code': 'K40', 'a': 205.0},
-      {'name': 'خروج كشك الفردوس (1)', 'code': 'K41', 'a': 68.0},
-      {'name': 'خروج كشك الفردوس (2)', 'code': 'K42', 'a': 0.0, 'isCap': true, 'mvar': 6.0},
-      {'name': 'MEASUREMENT CELL (4)', 'code': 'K43', 'a': 0.0},
-      {'name': 'BUS RISER (2-4)', 'code': 'K44', 'a': 0.0, 'isRiser': true},
+      {
+        'name': 'BUS COUPLER (3-4)',
+        'code': 'K29',
+        'a': -0.5,
+        'isCoupler': true
+      },
+      {'name': 'طلعت حرب', 'code': 'K30', 'a': 72.7},
+      {'name': 'الاستعلامات', 'code': 'K31', 'a': 77.6},
+      {'name': 'الصالون الاخضر', 'code': 'K32', 'a': 83.1},
+      {'name': 'محول مساعد (2)', 'code': 'K33', 'a': 1.2},
+      {'name': 'مصلحة الكيميا', 'code': 'K34', 'a': 28.3},
+      {'name': '', 'code': 'K35', 'a': 0.0, 'isOpen': true},
+      {'name': 'الثورى (1)', 'code': 'K36', 'a': 29.2},
+      {'name': 'الثورى (2)', 'code': 'K37', 'a': 28.9},
+      {'name': 'تفريغ الادارة (1)', 'code': 'K38', 'a': 47.8},
+      {'name': 'تفريغ الادارة (2)', 'code': 'K39', 'a': -255.6},
+      {'name': 'مكثف (4)', 'code': 'K40', 'a': 0.0, 'isCap': true, 'mvar': 0.0},
+      {'name': 'MEASUREMENT CELL (4)', 'code': 'K41', 'a': 0.0},
+      {
+        'name': 'BUS RISER (2-4)',
+        'code': 'K42',
+        'a': 0.0,
+        'isRiser': true,
+        'isOpen': true
+      },
     ];
 
     for (var f in sec3Feeders) {
@@ -364,20 +493,21 @@ class MaarofController extends GetxController {
   FeederBay _create11kVFeeder(Map<String, dynamic> data, String prefix) {
     final code = data['code'] as String;
     final name = data['name'] as String;
+    final isOpen = data['isOpen'] == true;
     final id = '${prefix}_$code';
 
     final cb = _registerSwitch(SwitchItem(
       id: 'CB_11_$id',
-      name: 'قاطع $name ($code)',
+      name: name.isNotEmpty ? 'قاطع $name ($code)' : 'قاطع $code',
       tag: '[PCS-9710-TU1]MAAROUF_11KV_${code}_CB',
       type: SwitchType.circuitBreaker,
-      state: SwitchState.closed,
+      state: isOpen ? SwitchState.open : SwitchState.closed,
       voltageLevel: '11kV',
     ));
 
     final earth = _registerSwitch(SwitchItem(
       id: 'ES_11_$id',
-      name: 'أرضي $name ($code)',
+      name: name.isNotEmpty ? 'أرضي $name ($code)' : 'أرضي $code',
       tag: '[PCS-9710-TU1]MAAROUF_11KV_${code}_ES',
       type: SwitchType.earthSwitch,
       state: SwitchState.open,
@@ -431,14 +561,16 @@ class MaarofController extends GetxController {
     switches[switchId] = current.copyWith(state: newState);
 
     // تسجيل الحدث في الـ SOE Logger
-    eventLogs.insert(0, EventLogItem(
-      timestamp: DateTime.now(),
-      switchName: current.name,
-      switchTag: current.tag,
-      oldState: oldState,
-      newState: newState,
-      message: 'تغيرت حالة ${current.name} إلى ${newState.arabicName}',
-    ));
+    eventLogs.insert(
+        0,
+        EventLogItem(
+          timestamp: DateTime.now(),
+          switchName: current.name,
+          switchTag: current.tag,
+          oldState: oldState,
+          newState: newState,
+          message: 'تغيرت حالة ${current.name} إلى ${newState.arabicName}',
+        ));
 
     // إشعار الواجهة بالتحديث
     switches.refresh();
@@ -473,8 +605,8 @@ class MaarofController extends GetxController {
   Future<void> _fetchLiveScadaData() async {
     try {
       final response = await http.get(Uri.parse(apiBaseUrl.value)).timeout(
-        const Duration(seconds: 2),
-      );
+            const Duration(seconds: 2),
+          );
 
       if (response.statusCode == 200) {
         isConnectedToScada.value = true;
