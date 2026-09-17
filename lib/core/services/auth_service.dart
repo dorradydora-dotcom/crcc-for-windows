@@ -105,6 +105,10 @@ class AuthService extends GetxController {
   }
 
   void _setupFCMListeners() {
+    if (!GetPlatform.isMobile) {
+      AppLogger.logInfo('FCM listeners skipped on non-mobile platform');
+      return;
+    }
     try {
       _subscriptions
           .add(FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -137,6 +141,8 @@ class AuthService extends GetxController {
         if (initialMessage != null) {
           _handleMessageRoute(initialMessage.data['route']);
         }
+      }).catchError((e) {
+        AppLogger.logError('Failed to get initial FCM message', e);
       });
 
       AppLogger.logSuccess('🔔 FCM listeners setup completed');
@@ -311,7 +317,8 @@ class AuthService extends GetxController {
     if (_isDisposed) return;
     _isDisposed = true;
     // إلغاء جميع الاشتراكات بشكل آمن
-    Future.wait(_subscriptions.map((s) => s.cancel())).catchError((_) => <void>[]);
+    Future.wait(_subscriptions.map((s) => s.cancel()))
+        .catchError((_) => <void>[]);
     _subscriptions.clear();
     _cache.clear();
     _prefs = null;

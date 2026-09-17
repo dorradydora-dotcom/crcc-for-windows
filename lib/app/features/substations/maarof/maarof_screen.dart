@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +23,9 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
   double _lastLayoutWidth = 0;
   double _lastLayoutHeight = 0;
 
+  static const double _canvasW = 1560.0;
+  static const double _canvasH = 640.0;
+
   @override
   void initState() {
     super.initState();
@@ -33,82 +37,262 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+
+    // 📐 احتساب مقياس ابتدائي فوري حتى لا يظهر المخطط ضخماً في الفريم الأول
+    try {
+      final view = WidgetsBinding.instance.platformDispatcher.views.first;
+      final size = view.physicalSize / view.devicePixelRatio;
+      if (size.width > 0 && size.height > 0) {
+        final double w = size.width > size.height ? size.width : size.height;
+        final double h = (size.width > size.height ? size.height : size.width) - 40.0;
+        _fitDiagramToScreen(w, h);
+      }
+    } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _transformationController.dispose();
-    // 🔄 استعادة أوضاع الشاشة الطبيعية
+  void _restoreOrientation() {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    super.dispose();
   }
 
-  double _fitScale = 0.55;
+  void _handleExit(BuildContext context) {
+    _restoreOrientation();
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Get.back();
+    }
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    // 🔄 استعادة أوضاع الشاشة الطبيعية
+    _restoreOrientation();
+    super.dispose();
+  }
 
   /// 📐 احتساب المقياس وتوسيط المخطط تلقائياً ليلائم الشاشة بالكامل بأصغر حجم مناسب
   void _fitDiagramToScreen(double viewportWidth, double viewportHeight) {
     if (viewportWidth <= 0 || viewportHeight <= 0) return;
-    const double canvasW = 1350.0;
-    const double canvasH = 590.0;
 
-    final double scaleX = viewportWidth / canvasW;
-    final double scaleY = viewportHeight / canvasH;
-    final double calculatedScale = (scaleX < scaleY ? scaleX : scaleY) * 0.98;
-    final double finalScale = calculatedScale.clamp(0.1, 2.0);
+    // هوامش مريحة لعرض كامل المحطة دون اقتصاص
+    final double availW = viewportWidth - 32.0;
+    final double availH = viewportHeight - 20.0;
 
-    if (_fitScale != finalScale && mounted) {
-      setState(() {
-        _fitScale = finalScale;
-      });
-    }
+    final double scaleX = availW / _canvasW;
+    final double scaleY = availH / _canvasH;
+    final double calculatedScale = (scaleX < scaleY ? scaleX : scaleY);
+    final double finalScale = calculatedScale.clamp(0.10, 1.2);
 
-    final double dx = (viewportWidth - canvasW * finalScale) / 2;
-    final double dy = (viewportHeight - canvasH * finalScale) / 2;
+    final double scaledW = _canvasW * finalScale;
+    final double scaledH = _canvasH * finalScale;
+    final double dx = (viewportWidth - scaledW) / 2.0;
+    final double dy = (viewportHeight - scaledH) / 2.0;
 
     _transformationController.value = Matrix4.diagonal3Values(finalScale, finalScale, 1.0)
       ..setTranslationRaw(dx > 0 ? dx : 0.0, dy > 0 ? dy : 0.0, 0.0);
   }
 
+  /// 🔍 تكبير المخطط خطوة واحدة
+  void _zoomIn() {
+    _zoomBy(1.20);
+  }
+
+  /// 🔍 تصغير المخطط خطوة واحدة
+  void _zoomOut() {
+    _zoomBy(0.833);
+  }
+
+  void _zoomBy(double factor) {
+    if (_lastLayoutWidth <= 0 || _lastLayoutHeight <= 0) return;
+    _zoomAt(factor, Offset(_lastLayoutWidth / 2.0, _lastLayoutHeight / 2.0));
+  }
+
+  void _zoomAt(double factor, Offset focalPoint) {
+    final Matrix4 currentMatrix = _transformationController.value;
+    final double currentScale = currentMatrix.getMaxScaleOnAxis();
+    final double targetScale = (currentScale * factor).clamp(0.10, 5.0);
+    final double actualFactor = targetScale / currentScale;
+
+    if ((actualFactor - 1.0).abs() < 0.001) return;
+
+    final Matrix4 translationToCenter =
+        Matrix4.translationValues(-focalPoint.dx, -focalPoint.dy, 0.0);
+    final Matrix4 scaleMatrix =
+        Matrix4.diagonal3Values(actualFactor, actualFactor, 1.0);
+    final Matrix4 translationBack =
+        Matrix4.translationValues(focalPoint.dx, focalPoint.dy, 0.0);
+
+    final Matrix4 newMatrix =
+        translationBack * scaleMatrix * translationToCenter * currentMatrix;
+    _transformationController.value = newMatrix;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF090B12),
-      appBar: _buildScadaHeader(context),
-      body: SafeArea(
-        child: ClipRect(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if ((_lastLayoutWidth != constraints.maxWidth ||
-                      _lastLayoutHeight != constraints.maxHeight) &&
-                  constraints.maxWidth > 0 &&
-                  constraints.maxHeight > 0) {
-                _lastLayoutWidth = constraints.maxWidth;
-                _lastLayoutHeight = constraints.maxHeight;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    _fitDiagramToScreen(
-                        _lastLayoutWidth, _lastLayoutHeight);
-                  }
-                });
-              }
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _restoreOrientation();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF090B12),
+        appBar: _buildScadaHeader(context),
+        body: SafeArea(
+          child: ClipRect(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if ((_lastLayoutWidth != constraints.maxWidth ||
+                        _lastLayoutHeight != constraints.maxHeight) &&
+                    constraints.maxWidth > 0 &&
+                    constraints.maxHeight > 0) {
+                  _lastLayoutWidth = constraints.maxWidth;
+                  _lastLayoutHeight = constraints.maxHeight;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      _fitDiagramToScreen(
+                          _lastLayoutWidth, _lastLayoutHeight);
+                    }
+                  });
+                }
 
-              return InteractiveViewer(
-                transformationController: _transformationController,
-                boundaryMargin: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-                minScale: _fitScale * 0.95,
-                maxScale: 5.0,
-                constrained: false,
-                child: MaarofSldCanvas(),
-              );
-            },
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Listener(
+                        onPointerSignal: (pointerSignal) {
+                          if (pointerSignal is PointerScrollEvent) {
+                            final double delta = pointerSignal.scrollDelta.dy;
+                            if (delta != 0) {
+                              final double factor = delta < 0 ? 1.15 : 0.87;
+                              _zoomAt(factor, pointerSignal.localPosition);
+                            }
+                          }
+                        },
+                        child: InteractiveViewer(
+                          transformationController: _transformationController,
+                          boundaryMargin: const EdgeInsets.symmetric(
+                              horizontal: 100, vertical: 60),
+                          minScale: 0.10,
+                          maxScale: 5.0,
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          trackpadScrollCausesScale: true,
+                          constrained: false,
+                          child: MaarofSldCanvas(),
+                        ),
+                      ),
+                    ),
+                    // 🎛️ شريط التحكم بالزووم الطافي (Floating Zoom Controller)
+                    Positioned(
+                      bottom: 12.h,
+                      left: 14.w,
+                      child: _buildFloatingZoomControls(),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// 🎛️ شريط أزرار تكبير وتصغير المحطة العائم
+  Widget _buildFloatingZoomControls() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C101C).withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // زر تكبير +
+          _buildZoomButton(
+            icon: Icons.add_rounded,
+            tooltip: 'تكبير المحطة (+)',
+            onPressed: _zoomIn,
+          ),
+          // زر تصغير -
+          _buildZoomButton(
+            icon: Icons.remove_rounded,
+            tooltip: 'تصغير المحطة (-)',
+            onPressed: _zoomOut,
+          ),
+          // فاصل رأسي
+          Container(
+            height: 16.h,
+            width: 1,
+            color: Colors.white24,
+            margin: EdgeInsets.symmetric(horizontal: 2.w),
+          ),
+          // زر ملاءمة وتوسيط كامل المحطة
+          _buildZoomButton(
+            icon: Icons.fullscreen_exit_rounded,
+            tooltip: 'ملاءمة وتوسيط كامل المحطة',
+            iconColor: Colors.cyanAccent,
+            onPressed: () =>
+                _fitDiagramToScreen(_lastLayoutWidth, _lastLayoutHeight),
+          ),
+          // نسبة التكبير الحالية
+          AnimatedBuilder(
+            animation: _transformationController,
+            builder: (context, _) {
+              final double scale =
+                  _transformationController.value.getMaxScaleOnAxis();
+              final int pct = (scale * 100).round();
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6.w),
+                child: Text(
+                  '$pct%',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 8.5.sp,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildZoomButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    Color iconColor = Colors.white,
+  }) {
+    return IconButton(
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints(minWidth: 28.w, minHeight: 28.h),
+      icon: Icon(icon, size: 16.sp, color: iconColor),
+      tooltip: tooltip,
+      onPressed: onPressed,
     );
   }
 
@@ -118,7 +302,29 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
       backgroundColor: const Color(0xFF141724),
       elevation: 2,
       toolbarHeight: 36.h,
-      automaticallyImplyLeading: true,
+      automaticallyImplyLeading: false,
+      leadingWidth: 38.w,
+      leading: IconButton(
+        padding: EdgeInsets.zero,
+        tooltip: 'خروج من محطة معروف',
+        icon: Container(
+          padding: EdgeInsets.all(3.5.r),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF2222).withValues(alpha: 0.20),
+            borderRadius: BorderRadius.circular(6.r),
+            border: Border.all(
+              color: const Color(0xFFFF5252).withValues(alpha: 0.65),
+              width: 1.0,
+            ),
+          ),
+          child: Icon(
+            Icons.close_rounded,
+            size: 15.sp,
+            color: const Color(0xFFFF5252),
+          ),
+        ),
+        onPressed: () => _handleExit(context),
+      ),
       titleSpacing: 0,
       title: FittedBox(
         fit: BoxFit.scaleDown,
@@ -294,6 +500,23 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
                 ],
               ),
             )),
+        // أزرار التحكم بالزووم في شريط العنوان
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
+          icon: Icon(Icons.zoom_in_rounded,
+              size: 15.sp, color: Colors.cyanAccent),
+          tooltip: 'تكبير المحطة (+)',
+          onPressed: _zoomIn,
+        ),
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
+          icon: Icon(Icons.zoom_out_rounded,
+              size: 15.sp, color: Colors.cyanAccent),
+          tooltip: 'تصغير المحطة (-)',
+          onPressed: _zoomOut,
+        ),
         // زر ضبط وتصغير العرض لملء الشاشة وتوسيط المحطة مصغر
         IconButton(
           padding: EdgeInsets.zero,

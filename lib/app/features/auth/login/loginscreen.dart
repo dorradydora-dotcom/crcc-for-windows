@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:amiraly/app/common/widgets/black_edges_overlay.dart';
 import 'package:amiraly/app/common/widgets/headlinetext.dart';
 import 'package:amiraly/app/features/auth/homepage/homepage.dart';
 import 'package:amiraly/app/util/constant/constants.dart';
@@ -8,9 +10,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:amiraly/core/widgets/electric_loading_indicator.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -82,38 +84,76 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildLoginForm() {
-    return Form(
-      key: _formKey,
-      child: LayoutBuilder(builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(24.w),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight,
+    return Positioned.fill(
+      child: Form(
+        key: _formKey,
+        child: LayoutBuilder(builder: (context, constraints) {
+          final bool isDesktop =
+              !GetPlatform.isMobile || constraints.maxWidth > 700;
+          final double formMaxWidth = isDesktop ? 430.0 : double.infinity;
+
+          return Align(
+            alignment: Alignment.topRight,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                top: isDesktop ? 24.h : 20.h,
+                right: isDesktop ? 32.w : 16.w,
+                left: isDesktop ? 0 : 16.w,
+                bottom: 24.h,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: formMaxWidth),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 22.w,
+                        vertical: 20.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF071424).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color:
+                              const Color(0xFF00E5FF).withValues(alpha: 0.20),
+                          width: 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.30),
+                            blurRadius: 20,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHeaderText(),
+                          SizedBox(height: 4.h),
+                          _buildDivider(),
+                          SizedBox(height: 6.h),
+                          _buildCompanyTexts(),
+                          SizedBox(height: 18.h),
+                          _buildEmailField(),
+                          SizedBox(height: 12.h),
+                          _buildPasswordField(),
+                          SizedBox(height: 20.h),
+                          _buildLoginButton(constraints),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: constraints.maxHeight * 0.05),
-                _buildHeaderText(),
-                SizedBox(height: 3.h),
-                _buildDivider(),
-                SizedBox(height: 4.h),
-                _buildCompanyTexts(),
-                SizedBox(height: constraints.maxHeight * 0.01),
-                SizedBox(height: 180.h), // Reduced from 256.h
-                _buildEmailField(),
-                SizedBox(height: 12.h), // Reduced from 16.h
-                _buildPasswordField(),
-                SizedBox(height: 24.h), // Reduced from 32.h
-                _buildLoginButton(constraints),
-                SizedBox(height: 140.h), // Reduced from 192.h
-              ],
-            ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
@@ -121,55 +161,114 @@ class _LoginScreenState extends State<LoginScreen>
     return FadeInDown(
       duration: const Duration(milliseconds: 800),
       delay: const Duration(milliseconds: 50),
-      child: TextLine(
-        text: 'تسـجيل الدخـول',
-        color: Colors.white,
-        fontWeight: FF.B,
-        fontSize: 18.sp,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextLine(
+                text: 'تسـجيل الدخـول',
+                color: Colors.white,
+                fontWeight: FF.B,
+                fontSize: 18.sp,
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
+              ),
+              SizedBox(width: 8.w),
+              Container(
+                padding: EdgeInsets.all(5.r),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                  border: Border.all(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Icon(
+                  Iconsax.flash5,
+                  color: const Color(0xFF00E5FF),
+                  size: 16.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildDivider() {
-    return Container(
-      height: 1.h,
-      width: 120.w,
-      decoration: const BoxDecoration(color: Colors.white),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        height: 1.5,
+        width: 140.w,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF00E5FF),
+              const Color(0xFF00E5FF).withValues(alpha: 0.3),
+              Colors.transparent,
+            ],
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildCompanyTexts() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FadeInDown(
           duration: const Duration(milliseconds: 900),
           delay: const Duration(milliseconds: 100),
-          child: TextLine(
-            text: 'برنامج التحكم الاقليمى للقاهرة الكبرى',
-            color: Colors.pink,
-            fontWeight: FF.B,
-            fontSize: 13.sp,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: TextLine(
+              text: 'الشركة المصرية لنقل الكهرباء',
+              color: const Color(0xFFFF6B6B),
+              fontWeight: FF.B,
+              fontSize: 11.5.sp,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.right,
+            ),
           ),
         ),
+        SizedBox(height: 2.h),
         FadeInDown(
           duration: const Duration(milliseconds: 900),
-          delay: const Duration(milliseconds: 200),
-          child: TextLine(
-            text: 'الشركة المصرية لنقل الكهرباء',
-            color: Colors.red,
-            fontWeight: FF.B,
-            fontSize: 10.sp,
+          delay: const Duration(milliseconds: 180),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: TextLine(
+              text: 'برنامج التحكم الاقليمى للقاهرة الكبرى',
+              color: const Color(0xFF00E5FF),
+              fontWeight: FF.B,
+              fontSize: 13.sp,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.right,
+            ),
           ),
         ),
+        SizedBox(height: 2.h),
         FadeInDown(
           duration: const Duration(milliseconds: 900),
-          delay: const Duration(milliseconds: 300),
-          child: TextLine(
-            text: 'مـركز التحكم الاقليمى',
-            color: const Color.fromARGB(255, 243, 233, 150),
-            fontWeight: FF.B,
-            fontSize: 10.sp,
+          delay: const Duration(milliseconds: 260),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: TextLine(
+              text: 'مـركز التحكم الاقليمى',
+              color: const Color(0xFFFFE082),
+              fontWeight: FF.B,
+              fontSize: 10.5.sp,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.right,
+            ),
           ),
         ),
       ],
@@ -183,7 +282,7 @@ class _LoginScreenState extends State<LoginScreen>
         focusNode: _emailFocusNode,
         valid: (val) => validInput(val!, 5, 30, 'email'),
         hinttext: 'Enter your mail',
-        icon: Icons.email_outlined,
+        icon: Icons.alternate_email_rounded,
         labelText: 'Email',
         mycontroller: loginController.email,
         keyboardType: TextInputType.emailAddress,
@@ -205,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen>
         focusNode: _passwordFocusNode,
         valid: (val) => validInput(val!, 7, 30, 'password'),
         hinttext: 'Enter password',
-        icon: Icons.lock,
+        icon: Icons.lock_outline_rounded,
         labelText: 'Password',
         mycontroller: loginController.password,
         obscureText: true,
@@ -230,18 +329,15 @@ class _LoginScreenState extends State<LoginScreen>
       child: Obx(() => FadeInUp(
             duration: const Duration(milliseconds: 800),
             delay: const Duration(milliseconds: 200),
-            child: SizedBox(
-              width: 180.w,
-              child: LoginButton(
-                buttonHeight: 45.h,
-                isLoading: loginController.isLoading.value,
-                onPressed: () => loginController.loginAction(
-                  loginController.email.text,
-                  loginController.password.text,
-                  _formKey,
-                ),
-                buttonwidth: constraints.maxWidth * 0.7,
+            child: LoginButton(
+              buttonHeight: 38.h,
+              isLoading: loginController.isLoading.value,
+              onPressed: () => loginController.loginAction(
+                loginController.email.text,
+                loginController.password.text,
+                _formKey,
               ),
+              buttonwidth: 180.w,
             ),
           )),
     );
@@ -249,64 +345,143 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildDeveloperInfo() {
     return Positioned(
-      bottom: 24.h,
-      left: 20.w,
+      bottom: 16.h,
+      left: 18.w,
       child: FadeInLeft(
-        duration: const Duration(milliseconds: 3000),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            TextRichLine(
-              text1: 'P',
-              text2: 'owered ',
-              text3: '  b',
-              text4: 'y',
-              color1: Colors.red,
-              color2: Colors.white,
-              color3: Colors.red,
-              color4: Colors.white,
-              fontSize1: 25.sp,
-              fontSize2: 15.sp,
-              fontSize3: 20.sp,
-              fontSize4: 15.sp,
-            ),
-            SizedBox(height: 3.h),
-            TextLine(
-              text: 'د/محمود عصمت : وزير الكهرباء و الطاقة  المتجددة',
-              color: Colors.cyan,
-              fontFamily: Appfontstring.ChangaLight,
-              fontSize: 12.sp,
-              fontWeight: FF.B,
-            ),
-            TextLine(
-              text: 'م/منى رزق :رئيـسة الشركة المصرية للنقل',
-              color: const Color.fromARGB(255, 97, 205, 220),
-              fontFamily: Appfontstring.ChangaLight,
-              fontSize: 10.sp,
-              fontWeight: FF.B,
-            ),
-            SizedBox(height: 4.h),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'برمجة و تصميم : ',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: Colors.orange,
+        duration: const Duration(milliseconds: 1500),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF040D1A).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 0.6,
+                ),
+              ),
+              child: IntrinsicWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'P',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18.sp,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'owered ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'b',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'y',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        textDirection: TextDirection.ltr,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: 'م/امير محمود بدوى',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: Colors.white,
+                    SizedBox(height: 3.h),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextLine(
+                        text: 'د/محمود عصمت : وزير الكهرباء و الطاقة المتجددة',
+                        color: Colors.cyanAccent,
+                        fontFamily: Appfontstring.ChangaLight,
+                        fontSize: 11.5.sp,
+                        fontWeight: FF.B,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.right,
+                      ),
                     ),
-                  ),
-                ],
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextLine(
+                        text: 'م/منى رزق : رئيسـة الشركة المصرية للنقل',
+                        color: const Color.fromARGB(255, 140, 225, 240),
+                        fontFamily: Appfontstring.ChangaLight,
+                        fontSize: 9.5.sp,
+                        fontWeight: FF.B,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextLine(
+                        text: 'م/محمد رياض : العضو المتفرغ للمنطقة الشمالية',
+                        color: const Color.fromARGB(255, 140, 225, 240),
+                        fontFamily: Appfontstring.ChangaLight,
+                        fontSize: 9.5.sp,
+                        fontWeight: FF.B,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'برمجة و تصميم : ',
+                              style: TextStyle(
+                                fontSize: 9.5.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amberAccent,
+                                fontFamily: Appfontstring.ChangaLight,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'م/ امير محمود بدوى',
+                              style: TextStyle(
+                                fontSize: 8.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: Appfontstring.ChangaLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -314,27 +489,41 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildMinistryLogo() {
     return Positioned(
-      bottom: 0,
-      right: 5.w,
-      child: FadeInDown(
-        duration: const Duration(milliseconds: 1200),
-        delay: const Duration(milliseconds: 300),
-        child: Container(
-          height: 30.h,
-          width: 40.w,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.blue),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Opacity(
-            opacity: 0.6,
-            child: Image.asset(
-              AppimageString.minisrty,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              cacheHeight: (60 * 1.5).toInt(),
-              cacheWidth: (80 * 1.5).toInt(),
+      bottom: 16.h,
+      right: 18.w,
+      child: FadeInUp(
+        duration: const Duration(milliseconds: 1000),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF040D1A).withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.25),
+                  width: 0.8,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSingleLogo(AppimageString.minisrty),
+                  SizedBox(width: 8.w),
+                  _buildSingleLogo(AppimageString.qq),
+                  SizedBox(width: 8.w),
+                  _buildSingleLogo(AppimageString.aaa),
+                ],
+              ),
             ),
           ),
         ),
@@ -342,67 +531,30 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildAdditionalLogo1() {
-    return Positioned(
-      bottom: 70.h,
-      right: 5.w,
-      child: FadeInDown(
-        duration: const Duration(milliseconds: 1600),
-        delay: const Duration(milliseconds: 800),
-        child: Container(
-          height: 30.h,
-          width: 40.w,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(10.r),
-              bottomRight: Radius.circular(10.r),
-            ),
-          ),
-          child: Opacity(
-            opacity: 0.9,
-            child: Image.asset(
-              AppimageString.qq,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              cacheHeight: (60 * 1.5).toInt(),
-              cacheWidth: (80 * 1.5).toInt(),
-            ),
-          ),
+  Widget _buildSingleLogo(String assetPath) {
+    return Container(
+      height: 30.h,
+      width: 38.w,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.15),
+          width: 0.6,
         ),
+      ),
+      child: Image.asset(
+        assetPath,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
       ),
     );
   }
 
-  Widget _buildAdditionalLogo2() {
-    return Positioned(
-      bottom: 35.h,
-      right: 5.w,
-      child: FadeInDown(
-        duration: const Duration(milliseconds: 1400),
-        delay: const Duration(milliseconds: 700),
-        child: Container(
-          height: 30.h,
-          width: 40.w,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.red),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Opacity(
-            opacity: 0.6,
-            child: Image.asset(
-              AppimageString.aaa,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              cacheHeight: (60 * 1.5).toInt(),
-              cacheWidth: (80 * 1.5).toInt(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildAdditionalLogo1() => const SizedBox.shrink();
+
+  Widget _buildAdditionalLogo2() => const SizedBox.shrink();
 }
 
 abstract class LoginController extends GetxController {
@@ -483,7 +635,7 @@ class LoginControllerImp extends LoginController {
                 .update(updateMap)
                 .eq('user_email', email.trim());
           }
-          
+
           updatedTable = table;
           break;
         }
@@ -523,25 +675,28 @@ class LoginControllerImp extends LoginController {
         }
 
         String? fcmToken;
-        try {
-          final messaging = FirebaseMessaging.instance;
-          final NotificationSettings settings =
-              await messaging.requestPermission(
-            alert: true,
-            badge: true,
-            sound: true,
-            provisional: false,
-          );
+        if (GetPlatform.isMobile) {
+          try {
+            final messaging = FirebaseMessaging.instance;
+            final NotificationSettings settings =
+                await messaging.requestPermission(
+              alert: true,
+              badge: true,
+              sound: true,
+              provisional: false,
+            );
 
-          if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-            fcmToken = await messaging.getToken();
-            AppLogger.logInfo(
-                'FCM Token obtained: ${fcmToken?.substring(0, 10)}...');
-          } else {
-            AppLogger.logWarning('Notifications not authorized');
+            if (settings.authorizationStatus ==
+                AuthorizationStatus.authorized) {
+              fcmToken = await messaging.getToken();
+              AppLogger.logInfo(
+                  'FCM Token obtained: ${fcmToken?.substring(0, 10)}...');
+            } else {
+              AppLogger.logWarning('Notifications not authorized');
+            }
+          } catch (e) {
+            AppLogger.logError('Failed to get FCM token', e);
           }
-        } catch (e) {
-          AppLogger.logError('Failed to get FCM token', e);
         }
 
         final updatedTable = await saveTokenToUserTable(
@@ -594,14 +749,34 @@ class LogBackGroung extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(AppimageString.image55),
-          fit: BoxFit.fill,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // خلفية داكنة متناسقة مع ألوان سماء الصورة
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF040B14),
+                Color(0xFF081A2A),
+                Color(0xFF0F2B44),
+                Color(0xFF03070D),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        // عرض الصورة مع الحفاظ التام على أبعادها وتفاصيلها بدقة فائقة
+        Image.asset(
+          AppimageString.loginOption1,
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
           filterQuality: FilterQuality.high,
         ),
-      ),
+        // حواف سوداء محيطية ناعمة للصورة
+        const BlackEdgesOverlay(),
+      ],
     );
   }
 }
@@ -662,13 +837,23 @@ class CustomTextFormFieldloginState extends State<CustomTextFormFieldlogin> {
       obscureText: _obscureText,
       validator: widget.valid,
       onFieldSubmitted: widget.onFieldSubmitted,
-      style: TextStyle(color: Colors.white, fontSize: 14.sp),
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 13.sp,
+        fontFamily: Appfontstring.ChangaLight,
+      ),
       decoration: InputDecoration(
-        prefixIcon: Icon(widget.icon, color: Colors.white70, size: 24.sp),
+        prefixIcon: Icon(
+          widget.icon,
+          color: const Color(0xFF00E5FF),
+          size: 20.sp,
+        ),
         suffixIcon: widget.obscureText == true
             ? IconButton(
                 icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.visibility,
+                  _obscureText
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: Colors.white70,
                   size: 20.sp,
                 ),
@@ -681,47 +866,63 @@ class CustomTextFormFieldloginState extends State<CustomTextFormFieldlogin> {
         floatingLabelAlignment: FloatingLabelAlignment.start,
         hintText: widget.hinttext,
         hintStyle: TextStyle(
-          color: const Color.fromARGB(154, 255, 255, 255),
-          fontSize: 14.sp,
+          color: Colors.white38,
+          fontSize: 12.sp,
         ),
         labelText: widget.labelText,
         labelStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
+          color: const Color(0xFF64D2FF),
+          fontSize: 12.5.sp,
+          fontWeight: FontWeight.w600,
+          fontFamily: Appfontstring.ChangaLight,
         ),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.2),
+        fillColor: const Color(0xFF05101E).withValues(alpha: 0.22),
         contentPadding: EdgeInsets.symmetric(
-          horizontal: 20.w,
-          vertical: 16.h,
+          horizontal: 18.w,
+          vertical: 14.h,
         ),
         border: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white54),
-          borderRadius: BorderRadius.circular(30.r),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.16),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white54),
-          borderRadius: BorderRadius.circular(30.r),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.18),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white, width: 1.5),
-          borderRadius: BorderRadius.circular(30.r),
+          borderSide: const BorderSide(
+            color: Color(0xFF00E5FF),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         errorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red),
-          borderRadius: BorderRadius.circular(30.r),
+          borderSide: const BorderSide(
+            color: Color(0xFFFF5252),
+            width: 1.2,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-          borderRadius: BorderRadius.circular(30.r),
+          borderSide: const BorderSide(
+            color: Color(0xFFFF5252),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
         ),
       ),
     );
   }
 }
 
-class LoginButton extends StatelessWidget {
+class LoginButton extends StatefulWidget {
   const LoginButton({
     super.key,
     required this.buttonHeight,
@@ -736,51 +937,123 @@ class LoginButton extends StatelessWidget {
   final void Function()? onPressed;
 
   @override
+  State<LoginButton> createState() => _LoginButtonState();
+}
+
+class _LoginButtonState extends State<LoginButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _rippleProgress;
+
+  @override
+  void initState() {
+    super.initState();
+    // نبضة هادئة وراقية تتكرر دورياً كل 5 ثواني
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat();
+
+    // توهج موجي هادئ يتسع بنعومة ويتلاشى في محيط الزر دون تحريك أي نص أو أيقونة (~1.4 ثانية)
+    _rippleProgress = CurvedAnimation(
+      parent: _pulseController,
+      curve: const Interval(0.0, 0.28, curve: Curves.easeOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: buttonwidth,
-      height: buttonHeight,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.3),
-            blurRadius: 10.r,
-            spreadRadius: 1.r,
-          ),
-        ],
-        borderRadius: BorderRadius.circular(30.r),
-        gradient: const LinearGradient(
-          colors: [
-            Colors.white,
-            Colors.cyanAccent,
-            Color.fromARGB(255, 59, 136, 62),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.r),
-          ),
-          padding: EdgeInsets.zero,
-        ),
-        child: isLoading
-            ? const ElectricLoadingIndicator(size: 24, color: Colors.white)
-            : Text(
-                'تسجيل الدخول',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final double rVal = widget.isLoading ? 0.0 : _rippleProgress.value;
+        final bool isRippling =
+            !widget.isLoading && _pulseController.value <= 0.28;
+        final double rippleAlpha = isRippling ? (1.0 - rVal) * 0.65 : 0.0;
+        final double rippleSpread = isRippling ? rVal * 8.0 : 0.0;
+        final double rippleBlur = isRippling ? 8.0 + (rVal * 18.0) : 10.0;
+        final BorderRadius pillRadius =
+            BorderRadius.circular(widget.buttonHeight / 2);
+
+        return Container(
+          width: widget.buttonwidth,
+          height: widget.buttonHeight,
+          decoration: BoxDecoration(
+            borderRadius: pillRadius,
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF00E5FF),
+                Color(0xFF0066FF),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            boxShadow: [
+              // وهج ارتكاز ناعم ثابت
+              BoxShadow(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.30),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-      ),
+              // هالة النبضة الهادئة تتسع في محيط الزر كل 5 ثواني دون أي حركة للنصوص أو الأيقونة
+              if (isRippling)
+                BoxShadow(
+                  color:
+                      const Color(0xFF00E5FF).withValues(alpha: rippleAlpha),
+                  blurRadius: rippleBlur,
+                  spreadRadius: rippleSpread,
+                  offset: Offset.zero,
+                ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: widget.isLoading ? null : widget.onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: pillRadius,
+              ),
+              padding: EdgeInsets.zero,
+            ),
+            child: widget.isLoading
+                ? const ElectricLoadingIndicator(
+                    size: 20, color: Colors.white)
+                : Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'تسـجيـل الـدخـول',
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5.sp,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: Appfontstring.ChangaLight,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Icon(
+                          Iconsax.login_1,
+                          color: Colors.white,
+                          size: 16.sp,
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        );
+      },
     );
   }
 }

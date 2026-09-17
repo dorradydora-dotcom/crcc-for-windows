@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:amiraly/app/util/validators/validator_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:amiraly/app/common/models/appmodels.dart';
@@ -119,9 +120,25 @@ class HomenavcontrollerImp extends Homenavcontroller {
     _updateConnectionStatus(results);
   }
 
-  void _updateConnectionStatus(List<ConnectivityResult> results) {
-    isOffline.value =
-        results.contains(ConnectivityResult.none) || results.isEmpty;
+  void _updateConnectionStatus(List<ConnectivityResult> results) async {
+    bool offline = false;
+    if (GetPlatform.isMobile) {
+      offline = results.isNotEmpty &&
+          results.every((r) => r == ConnectivityResult.none);
+    }
+    if (offline) {
+      try {
+        final lookup = await InternetAddress.lookup('google.com')
+            .timeout(const Duration(milliseconds: 1500));
+        offline = lookup.isEmpty || lookup[0].rawAddress.isEmpty;
+      } catch (_) {
+        offline = true;
+      }
+    } else if (!GetPlatform.isMobile) {
+      // على الويندوز والديسكتوب لا نعتمد على connectivity_plus ونسمح بالاتصال
+      offline = false;
+    }
+    isOffline.value = offline;
     if (!isOffline.value && _categories.isEmpty) {
       _initializeData();
     }

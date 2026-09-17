@@ -154,85 +154,87 @@ class MaarofSldCanvas extends StatelessWidget {
     required Color color,
     required bool isTop,
   }) {
-    return SizedBox(
-      height: 24,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          // خط البارة الرئيسي الأبيض المستمر الممتد عبر كامل العرض
-          Positioned(
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 3.2,
-              decoration: BoxDecoration(
-                color: color,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withAlpha(100),
-                    blurRadius: 4,
-                    spreadRadius: 0.5,
-                  )
+    return IgnorePointer(
+      child: SizedBox(
+        height: 24,
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // خط البارة الرئيسي الأبيض المستمر الممتد عبر كامل العرض
+            Positioned(
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 3.2,
+                decoration: BoxDecoration(
+                  color: color,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withAlpha(100),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                    )
+                  ],
+                ),
+              ),
+            ),
+            // بيان الجهد يسار البارة
+            Positioned(
+              left: 4,
+              top: isTop ? -18 : 6,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$labelLeft ',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    kvLeft,
+                    style: const TextStyle(
+                      color: Color(0xFF00E5FF),
+                      fontSize: 8.5,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          // بيان الجهد يسار البارة
-          Positioned(
-            left: 4,
-            top: isTop ? -18 : 6,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$labelLeft ',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.0,
-                    fontWeight: FontWeight.bold,
+            // بيان الجهد يمين البارة
+            Positioned(
+              right: 4,
+              top: isTop ? -18 : 6,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$labelRight ',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.0,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  kvLeft,
-                  style: const TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontSize: 8.5,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w600,
+                  Text(
+                    kvRight,
+                    style: const TextStyle(
+                      color: Color(0xFF00E5FF),
+                      fontSize: 8.5,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // بيان الجهد يمين البارة
-          Positioned(
-            right: 4,
-            top: isTop ? -18 : 6,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$labelRight ',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  kvRight,
-                  style: const TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontSize: 8.5,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

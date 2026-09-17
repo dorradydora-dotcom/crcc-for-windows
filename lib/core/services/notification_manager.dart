@@ -51,6 +51,7 @@ class NotificationManager {
   bool _isInitialized = false;
 
   Future<void> initialize() async {
+    if (!GetPlatform.isMobile) return;
     if (_isInitialized) return;
     try {
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -88,7 +89,8 @@ class NotificationManager {
           final title = message.data['title'] ?? message.notification?.title;
           final body = message.data['body'] ?? message.notification?.body;
           if (title != null && body != null) {
-            await show(title, body, message.messageId, route: route, data: message.data);
+            await show(title, body, message.messageId,
+                route: route, data: message.data);
           }
         }
       });

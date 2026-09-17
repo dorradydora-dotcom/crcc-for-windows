@@ -7,6 +7,9 @@ class TextLine extends StatelessWidget {
   final String? fontFamily;
   final FontWeight? fontWeight;
   final double? fontSize;
+  final TextAlign? textAlign;
+  final TextDirection? textDirection;
+
   const TextLine({
     super.key,
     required this.text,
@@ -14,12 +17,16 @@ class TextLine extends StatelessWidget {
     this.fontFamily,
     this.fontWeight,
     this.fontSize,
+    this.textAlign = TextAlign.right,
+    this.textDirection = TextDirection.rtl,
   });
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
+      textAlign: textAlign ?? TextAlign.right,
+      textDirection: textDirection ?? TextDirection.rtl,
       style: TextStyle(
         fontFamily: fontFamily,
         fontFamilyFallback: const [Appfontstring.ChangaLight],

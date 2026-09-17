@@ -34,7 +34,8 @@ class BreakerSymbol extends StatelessWidget {
         isFilled = true;
         break;
       case SwitchState.open:
-        boxColor = const Color(0xFF00E676); // أخضر ممتلئ - مفصول (open)
+        boxColor =
+            const Color.fromARGB(255, 0, 0, 0); // أخضر ممتلئ - مفصول (open)
         borderColor = const Color(0xFF69F0AE);
         isFilled = true;
         break;
@@ -50,17 +51,22 @@ class BreakerSymbol extends StatelessWidget {
         break;
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
           onTap?.call();
         },
         onLongPress: onLongPress ?? onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
+        child: Container(
+          constraints: BoxConstraints(
+            minWidth: (size + 14).clamp(30.0, 48.0),
+            minHeight: (size + 14).clamp(30.0, 48.0),
+          ),
+          alignment: Alignment.center,
+          color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -122,17 +128,22 @@ class DisconnectorSymbol extends StatelessWidget {
   Widget build(BuildContext context) {
     final isClosed = state == SwitchState.closed;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
           onTap?.call();
         },
         onLongPress: onLongPress ?? onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.all(2.0),
+        child: Container(
+          constraints: BoxConstraints(
+            minWidth: (size + 14).clamp(30.0, 48.0),
+            minHeight: (size + 14).clamp(30.0, 48.0),
+          ),
+          alignment: Alignment.center,
+          color: Colors.transparent,
           child: CustomPaint(
             size: Size(isHorizontal ? size * 1.2 : size,
                 isHorizontal ? size : size * 1.2),
@@ -184,8 +195,8 @@ class _DisconnectorPainter extends CustomPainter {
           Offset(cx - 3.2, botY), Offset(cx + 3.2, botY), terminalPaint);
 
       // العلامة الرأسية الجانبية
-      canvas.drawLine(
-          Offset(cx + 4.5, topY + 1.0), Offset(cx + 4.5, botY - 1.0), terminalPaint);
+      canvas.drawLine(Offset(cx + 4.5, topY + 1.0),
+          Offset(cx + 4.5, botY - 1.0), terminalPaint);
 
       if (isClosed) {
         // خط مستقيم يربط الطرفين (أحمر موصل)
@@ -215,8 +226,8 @@ class _DisconnectorPainter extends CustomPainter {
           Offset(rightX, cy - 3.2), Offset(rightX, cy + 3.2), terminalPaint);
 
       // العلامة الأفقية الجانبية
-      canvas.drawLine(
-          Offset(leftX + 1.0, cy + 4.5), Offset(rightX - 1.0, cy + 4.5), terminalPaint);
+      canvas.drawLine(Offset(leftX + 1.0, cy + 4.5),
+          Offset(rightX - 1.0, cy + 4.5), terminalPaint);
 
       if (isClosed) {
         // خط مستقيم يربط الطرفين (أحمر موصل)
@@ -267,17 +278,19 @@ class TieSwitchSymbol extends StatelessWidget {
   Widget build(BuildContext context) {
     final isClosed = state == SwitchState.closed;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
           onTap?.call();
         },
         onLongPress: onLongPress ?? onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 44.0, minHeight: 32.0),
+          alignment: Alignment.center,
+          color: Colors.transparent,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -332,17 +345,19 @@ class EarthBranchWidget extends StatelessWidget {
     // أحمر موصل بالأرضي، وأخضر مفصول
     final color = isClosed ? const Color(0xFFFF2222) : const Color(0xFF00E676);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
           onTap?.call();
         },
         onLongPress: onLongPress ?? onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 32.0, minHeight: 28.0),
+          alignment: Alignment.center,
+          color: Colors.transparent,
           child: CustomPaint(
             size: Size(width, height),
             painter: _EarthBranchPainter(
@@ -412,10 +427,10 @@ class _EarthBranchPainter extends CustomPainter {
       // رمز الأرضي ⏚ (3 خطوط أفقية متدرجة رأسياً على اليسار)
       canvas.drawLine(
           Offset(groundX, cy - 4.5), Offset(groundX, cy + 4.5), paint);
-      canvas.drawLine(
-          Offset(groundX - 2.2, cy - 2.8), Offset(groundX - 2.2, cy + 2.8), paint);
-      canvas.drawLine(
-          Offset(groundX - 4.4, cy - 1.4), Offset(groundX - 4.4, cy + 1.4), paint);
+      canvas.drawLine(Offset(groundX - 2.2, cy - 2.8),
+          Offset(groundX - 2.2, cy + 2.8), paint);
+      canvas.drawLine(Offset(groundX - 4.4, cy - 1.4),
+          Offset(groundX - 4.4, cy + 1.4), paint);
     } else {
       // نقطة البداية على الخط الرئيسي جهة اليسار
       canvas.drawCircle(Offset(1, cy), 1.8, dotPaint);
@@ -746,8 +761,10 @@ class TransformerBayWidget extends StatelessWidget {
 
           // ب. رسمة الدائرتين البيضاوين + المعين + تفريعة NGR
           Positioned.fill(
-            child: CustomPaint(
-              painter: _TransformerBodyPainter(),
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _TransformerBodyPainter(),
+              ),
             ),
           ),
 
@@ -959,8 +976,10 @@ class _TransformerBodyPainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     // خط واصل علوي وسفلي للملفات
-    canvas.drawLine(const Offset(centerX, 164), const Offset(centerX, 175), whiteLinePaint);
-    canvas.drawLine(const Offset(centerX, 207), const Offset(centerX, 236), whiteLinePaint);
+    canvas.drawLine(
+        const Offset(centerX, 164), const Offset(centerX, 175), whiteLinePaint);
+    canvas.drawLine(
+        const Offset(centerX, 207), const Offset(centerX, 236), whiteLinePaint);
 
     // دائرتان متداخلتان باللون الأبيض
     const radius = 12.5;
@@ -993,9 +1012,11 @@ class _TransformerBodyPainter extends CustomPainter {
 
     const ngrX = 21.0;
     // خط أفقي خارج من الدائرة السفلية إلى خط النيوترال
-    canvas.drawLine(const Offset(centerX - radius, 202), const Offset(ngrX, 202), amberPaint);
+    canvas.drawLine(const Offset(centerX - radius, 202),
+        const Offset(ngrX, 202), amberPaint);
     // خط رأسي هابط
-    canvas.drawLine(const Offset(ngrX, 202), const Offset(ngrX, 222), amberPaint);
+    canvas.drawLine(
+        const Offset(ngrX, 202), const Offset(ngrX, 222), amberPaint);
     // خط أفقي خارج لليسار
     canvas.drawLine(const Offset(ngrX, 208), const Offset(0, 208), amberPaint);
 
@@ -1014,10 +1035,14 @@ class _TransformerBodyPainter extends CustomPainter {
     canvas.drawPath(ngrPath, cyanPaint);
 
     // رمز الأرضي ⏚ بالسماوي (3 خطوط أفقية متدرجة)
-    canvas.drawLine(const Offset(ngrX, 232), const Offset(ngrX, 235), cyanPaint);
-    canvas.drawLine(const Offset(ngrX - 6, 235), const Offset(ngrX + 6, 235), cyanPaint);
-    canvas.drawLine(const Offset(ngrX - 4, 238), const Offset(ngrX + 4, 238), cyanPaint);
-    canvas.drawLine(const Offset(ngrX - 2, 241), const Offset(ngrX + 2, 241), cyanPaint);
+    canvas.drawLine(
+        const Offset(ngrX, 232), const Offset(ngrX, 235), cyanPaint);
+    canvas.drawLine(
+        const Offset(ngrX - 6, 235), const Offset(ngrX + 6, 235), cyanPaint);
+    canvas.drawLine(
+        const Offset(ngrX - 4, 238), const Offset(ngrX + 4, 238), cyanPaint);
+    canvas.drawLine(
+        const Offset(ngrX - 2, 241), const Offset(ngrX + 2, 241), cyanPaint);
   }
 
   @override
@@ -1288,4 +1313,3 @@ class Line66kVBayWidget extends StatelessWidget {
     }
   }
 }
-

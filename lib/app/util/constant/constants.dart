@@ -103,6 +103,8 @@ class AppimageString {
   AppimageString._(); // Private constructor to prevent instantiation
 
   static const String image55 = 'lib/assets/images/g/image55.jpg';
+  static const String loginOption1 = 'lib/assets/images/g/login_option1.jpg';
+  static const String loginOption2 = 'lib/assets/images/g/login_option2.jpg';
   static const String minisrty = 'lib/assets/images/g/ministry.jpg';
   static const String aaa = 'lib/assets/images/g/aaa.jpg';
   static const String qq = 'lib/assets/images/g/qq.png';

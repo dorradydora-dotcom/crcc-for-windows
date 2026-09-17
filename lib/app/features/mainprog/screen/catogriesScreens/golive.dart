@@ -130,10 +130,12 @@ class CallNotificationService {
           WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
       if (isForeground) {
-        debugPrint('📞 [CallNotificationService] App is in foreground, showing custom Dialog...');
+        debugPrint(
+            '📞 [CallNotificationService] App is in foreground, showing custom Dialog...');
         await showForegroundCallDialog(data);
       } else {
-        debugPrint('📞 [CallNotificationService] App is in background/terminated, showing CallKit UI...');
+        debugPrint(
+            '📞 [CallNotificationService] App is in background/terminated, showing CallKit UI...');
         await showCallKit(data);
       }
     } catch (e, stack) {
@@ -141,7 +143,8 @@ class CallNotificationService {
     }
   }
 
-  static Future<void> showForegroundCallDialog(Map<String, dynamic> data) async {
+  static Future<void> showForegroundCallDialog(
+      Map<String, dynamic> data) async {
     try {
       final String callId =
           data['call_id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -150,7 +153,7 @@ class CallNotificationService {
 
       // التأكد من عدم تكرار الـ Dialog أو فتحه لمكالمة منتهية أو ناتجة عن المتصل نفسه
       if (Get.isDialogOpen ?? false) return;
-      if (GlobalCallService.to.currentCallId.value == callId && 
+      if (GlobalCallService.to.currentCallId.value == callId &&
           Get.currentRoute == '/VideoCallPage') return;
 
       // تشغيل الرنين داخلياً (سيتم إيقافه عند الرد أو الرفض أو إنهاء المكالمة)
@@ -169,7 +172,8 @@ class CallNotificationService {
               decoration: BoxDecoration(
                 color: const Color(0xFF071624),
                 borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
+                border:
+                    Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.5),
@@ -224,16 +228,18 @@ class CallNotificationService {
                         color: Colors.red,
                         label: 'رفض',
                         onTap: () async {
-                          final GoLiveController controller = Get.isRegistered<GoLiveController>()
-                              ? Get.find<GoLiveController>()
-                              : Get.put(GoLiveController(), permanent: true);
-                          
+                          final GoLiveController controller =
+                              Get.isRegistered<GoLiveController>()
+                                  ? Get.find<GoLiveController>()
+                                  : Get.put(GoLiveController(),
+                                      permanent: true);
+
                           controller.stopRinging();
-                          
+
                           await Supabase.instance.client
                               .from(AppConstants.tableCallsSignaling)
                               .update({'status': 'rejected'}).eq('id', callId);
-                          
+
                           if (Get.isDialogOpen ?? false) {
                             Get.back();
                           }
@@ -246,12 +252,14 @@ class CallNotificationService {
                         label: 'رد',
                         onTap: () async {
                           // التأكد من الحصول على المتحكم سواء كان مسجلاً أم لا
-                          final GoLiveController controller = Get.isRegistered<GoLiveController>()
-                              ? Get.find<GoLiveController>()
-                              : Get.put(GoLiveController(), permanent: true);
+                          final GoLiveController controller =
+                              Get.isRegistered<GoLiveController>()
+                                  ? Get.find<GoLiveController>()
+                                  : Get.put(GoLiveController(),
+                                      permanent: true);
 
                           controller.stopRinging();
-                          
+
                           // إغلاق الـ Dialog أولاً
                           if (Get.isDialogOpen ?? false) {
                             Get.back();
@@ -259,11 +267,15 @@ class CallNotificationService {
 
                           // انتظار استجابة قاعدة البيانات وتجهيز أغورا قبل الانتقال
                           await controller.respondToCall(
-                              callId: callId, accept: true, channelName: channelName);
-                          
+                              callId: callId,
+                              accept: true,
+                              channelName: channelName);
+
                           // التنقل لصفحة المكالمة
                           Get.to(
-                            () => VideoCallPage(controller: controller, channelName: channelName),
+                            () => VideoCallPage(
+                                controller: controller,
+                                channelName: channelName),
                             transition: Transition.zoom,
                           );
                         },
@@ -397,8 +409,8 @@ class GlobalCallService extends GetxService {
 
     if (GetPlatform.isMobile) {
       _listenToCallkitEvents();
-      _checkCurrentCall(); 
-      _setupActiveCallMonitor(); 
+      _checkCurrentCall();
+      _setupActiveCallMonitor();
     }
   }
 
@@ -426,12 +438,16 @@ class GlobalCallService extends GetxService {
                     Get.find<GoLiveController>()
                         .endCall('Signaling monitor ($status)', false);
                   }
-                } else if (status == 'accepted' && Get.isRegistered<GoLiveController>()) {
+                } else if (status == 'accepted' &&
+                    Get.isRegistered<GoLiveController>()) {
                   final controller = Get.find<GoLiveController>();
                   // 🚀 للمتصل فقط: إذا تم القبول ولم ننتقل بعد للصفحة، انتقل فوراً
-                  if (controller.isOutgoingCall.value && Get.currentRoute != '/VideoCallPage') {
-                    debugPrint('📞 [GlobalCallService] Monitor: Call accepted by receiver. Navigating initiator...');
-                    final channelName = snap['channel_name'] ?? controller.currentUserId;
+                  if (controller.isOutgoingCall.value &&
+                      Get.currentRoute != '/VideoCallPage') {
+                    debugPrint(
+                        '📞 [GlobalCallService] Monitor: Call accepted by receiver. Navigating initiator...');
+                    final channelName =
+                        snap['channel_name'] ?? controller.currentUserId;
                     _handleCallNavigation(controller, channelName);
                   }
                 }
@@ -492,7 +508,8 @@ class GlobalCallService extends GetxService {
 
   void _handleCallNavigation(GoLiveController controller, String channelName) {
     if (Get.currentRoute == '/VideoCallPage') {
-      debugPrint('📞 [GlobalCallService] Already in VideoCallPage. Skipping navigation.');
+      debugPrint(
+          '📞 [GlobalCallService] Already in VideoCallPage. Skipping navigation.');
       return;
     }
 
@@ -581,7 +598,8 @@ class GlobalCallService extends GetxService {
 
     // 🛡️ Deduplication Guard
     if (_signalingSubscription != null) {
-      debugPrint('📞 [GlobalCallService] Listening already active for: $authId (Deduplicated)');
+      debugPrint(
+          '📞 [GlobalCallService] Listening already active for: $authId (Deduplicated)');
       return;
     }
 
@@ -625,7 +643,7 @@ class GlobalCallService extends GetxService {
 
   void _setupStreamListener(String userId, {bool isLegacy = false}) {
     if (_signalingSubscription != null) return; // 🛡️ Idempotent check
-    
+
     debugPrint(
         '📞 [GlobalCallService] Starting stream listener for ${isLegacy ? "Legacy" : "Auth"} ID: $userId');
     _signalingSubscription = Supabase.instance.client
@@ -640,16 +658,20 @@ class GlobalCallService extends GetxService {
             final activeCall = data.firstWhere(
               (call) {
                 // الفحص للمستقبل ليشمل الرنين (للتنبيه) والمقبول (لاستمرار الاتصال)
-                if (call['status'] != 'ringing' && call['status'] != 'accepted') return false;
+                if (call['status'] != 'ringing' && call['status'] != 'accepted')
+                  return false;
                 final createdAtStr = call['created_at'];
                 if (createdAtStr != null) {
                   final createdAt = DateTime.tryParse(createdAtStr)?.toUtc();
                   if (createdAt != null) {
                     final now = DateTime.now().toUtc();
                     final diff = now.difference(createdAt).inSeconds.abs();
-                    debugPrint('📞 [GlobalCallService] Time Match: Server=$createdAt, Local=$now, Diff=${diff}s');
-                    if (diff > 1200) { // نافذة 20 دقيقة لتجاوز فروق التوقيت الشديدة
-                      debugPrint('📞 [GlobalCallService] Ignoring old call (Drift > 20m): ID=${call['id']}');
+                    debugPrint(
+                        '📞 [GlobalCallService] Time Match: Server=$createdAt, Local=$now, Diff=${diff}s');
+                    if (diff > 1200) {
+                      // نافذة 20 دقيقة لتجاوز فروق التوقيت الشديدة
+                      debugPrint(
+                          '📞 [GlobalCallService] Ignoring old call (Drift > 20m): ID=${call['id']}');
                       return false;
                     }
                   }
@@ -663,20 +685,20 @@ class GlobalCallService extends GetxService {
               debugPrint(
                   '📞 [GlobalCallService] MATCHED active call: ${activeCall['id']}');
               final String callId = activeCall['id'];
-                if (currentCallId.value != callId) {
-                  currentCallId.value = callId;
-                  incomingCall.value = activeCall;
-                  
-                  // 🚀 لا نفتح النافذة إلا إذا كانت الحالة "رنين"
-                  if (activeCall['status'] == 'ringing') {
-                    debugPrint(
-                        '📞 [GlobalCallService] Navigating to call: $callId');
-                    _navigateToCall(activeCall);
-                  } else {
-                    debugPrint(
-                        '📞 [GlobalCallService] Active call resumed: $callId (Status: ${activeCall['status']})');
-                  }
+              if (currentCallId.value != callId) {
+                currentCallId.value = callId;
+                incomingCall.value = activeCall;
+
+                // 🚀 لا نفتح النافذة إلا إذا كانت الحالة "رنين"
+                if (activeCall['status'] == 'ringing') {
+                  debugPrint(
+                      '📞 [GlobalCallService] Navigating to call: $callId');
+                  _navigateToCall(activeCall);
+                } else {
+                  debugPrint(
+                      '📞 [GlobalCallService] Active call resumed: $callId (Status: ${activeCall['status']})');
                 }
+              }
             } else {
               debugPrint(
                   '📞 [GlobalCallService] No active ringing calls within last 60s.');
@@ -749,7 +771,8 @@ class GlobalCallService extends GetxService {
     if (data.isNotEmpty) {
       final activeCall = data.firstWhere(
         (call) {
-          if (call['status'] != 'ringing' && call['status'] != 'accepted') return false;
+          if (call['status'] != 'ringing' && call['status'] != 'accepted')
+            return false;
           final createdAtStr = call['created_at'];
           if (createdAtStr != null) {
             final createdAt = DateTime.tryParse(createdAtStr)?.toUtc();
@@ -947,12 +970,14 @@ class GoLiveController extends GetxController {
         _engine!.registerEventHandler(
           RtcEngineEventHandler(
             onJoinChannelSuccess: (connection, elapsed) {
-              debugPrint('📞 [GoLiveController] Agora: Joined channel successfully. UID: ${connection.localUid}');
+              debugPrint(
+                  '📞 [GoLiveController] Agora: Joined channel successfully. UID: ${connection.localUid}');
               localUserJoined.value = true;
               isLocalVideoReady.value = true;
             },
             onUserJoined: (connection, uid, elapsed) {
-              debugPrint('📞 [GoLiveController] Agora: Remote user joined. UID: $uid');
+              debugPrint(
+                  '📞 [GoLiveController] Agora: Remote user joined. UID: $uid');
               remoteUid.value = uid;
               isRemoteVideoReady.value = true;
               stopRinging();
@@ -960,12 +985,14 @@ class GoLiveController extends GetxController {
               _callTimeoutTimer?.cancel();
             },
             onUserOffline: (connection, uid, reason) {
-              debugPrint('📞 [GoLiveController] Agora: Remote user offline. UID: $uid, Reason: $reason');
+              debugPrint(
+                  '📞 [GoLiveController] Agora: Remote user offline. UID: $uid, Reason: $reason');
               remoteUid.value = null;
               isRemoteVideoReady.value = false;
               Get.snackbar('انتهت المكالمة', 'قام الطرف الآخر بالمغادرة');
               endCall('Remote user offline ($reason)');
-              if (Get.currentRoute != 'Go live' && Get.currentRoute != '/HomePage') {
+              if (Get.currentRoute != 'Go live' &&
+                  Get.currentRoute != '/HomePage') {
                 Get.back();
               }
             },
@@ -1057,11 +1084,13 @@ class GoLiveController extends GetxController {
     try {
       // 🚀 جلب أحدث توكن للإشعارات لضمان وصول المكالمات
       String? fcmToken;
-      try {
-        fcmToken = await FirebaseMessaging.instance.getToken();
-      } catch (e) {
-        debugPrint(
-            '⚠️ [GoLiveController] Could not fetch FCM token for sync: $e');
+      if (GetPlatform.isMobile) {
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        } catch (e) {
+          debugPrint(
+              '⚠️ [GoLiveController] Could not fetch FCM token for sync: $e');
+        }
       }
 
       debugPrint(
@@ -1138,12 +1167,13 @@ class GoLiveController extends GetxController {
     localUserJoined.value = false;
     remoteUid.value = null;
     remoteName.value = 'جاري التحميل...';
-    
+
     debugPrint(
         '📞 [GoLiveController] makeCall started for receiver: $receiverId');
     final userId = currentUserId;
     if (userId == null) {
-      debugPrint('📞 [GoLiveController] makeCall failed: currentUserId is null');
+      debugPrint(
+          '📞 [GoLiveController] makeCall failed: currentUserId is null');
       return;
     }
 
@@ -1154,8 +1184,9 @@ class GoLiveController extends GetxController {
           .delete()
           .or('caller_id.eq.$userId,receiver_id.eq.$userId,caller_id.eq.$receiverId,receiver_id.eq.$receiverId')
           .inFilter('status', ['ringing', 'accepted']);
-      
-      debugPrint('📞 [GoLiveController] Zombie cleanup finished. Starting fresh call.');
+
+      debugPrint(
+          '📞 [GoLiveController] Zombie cleanup finished. Starting fresh call.');
 
       debugPrint('📞 [GoLiveController] Fetching tokens...');
       final callerToken = await _getReceiverToken(userId);
@@ -1247,15 +1278,15 @@ class GoLiveController extends GetxController {
         // 1. Update status in DB first to sync status across all devices
         await Supabase.instance.client
             .from(AppConstants.tableCallsSignaling)
-            .update({'status': 'accepted'}).eq(
-                'id', effectiveCallId);
-        
+            .update({'status': 'accepted'}).eq('id', effectiveCallId);
+
         // Fetch caller name for UI
-        _fetchCallerName(effectiveCallId).then((name) => remoteName.value = name);
+        _fetchCallerName(effectiveCallId)
+            .then((name) => remoteName.value = name);
 
         // 2. Initialize and Join
-        final effectiveChannel = (channelName != null && channelName.isNotEmpty) 
-            ? channelName 
+        final effectiveChannel = (channelName != null && channelName.isNotEmpty)
+            ? channelName
             : currentUserId;
 
         if (effectiveChannel != null) {
@@ -1274,12 +1305,14 @@ class GoLiveController extends GetxController {
     }
   }
 
-  Future<void> endCall([String reason = 'Direct user action', bool notifyRemote = true]) async {
-    debugPrint('📞 [GoLiveController] endCall triggered. Reason: $reason, Notify: $notifyRemote');
+  Future<void> endCall(
+      [String reason = 'Direct user action', bool notifyRemote = true]) async {
+    debugPrint(
+        '📞 [GoLiveController] endCall triggered. Reason: $reason, Notify: $notifyRemote');
     _callTimeoutTimer?.cancel();
     if (GlobalCallService.to.currentCallId.value != null && notifyRemote) {
       final callId = GlobalCallService.to.currentCallId.value!;
-      
+
       try {
         final callData = await Supabase.instance.client
             .from(AppConstants.tableCallsSignaling)
@@ -1294,9 +1327,11 @@ class GoLiveController extends GetxController {
         if (callData != null) {
           final receiverId = callData['receiver_id'];
           final callerId = callData['caller_id'];
-          final targetUserId = currentUserId == callerId ? receiverId : callerId;
+          final targetUserId =
+              currentUserId == callerId ? receiverId : callerId;
           if (targetUserId != null) {
-            final targetToken = await _getReceiverToken(targetUserId.toString());
+            final targetToken =
+                await _getReceiverToken(targetUserId.toString());
             if (targetToken != null) {
               CallNotificationService.sendCancelNotification(
                 deviceToken: targetToken,
@@ -1311,12 +1346,12 @@ class GoLiveController extends GetxController {
     }
     stopRinging();
     playHangup();
-    
+
     // 🧹 Immediate release of hardware resources
     await leaveChannel();
     await disposeAgora();
-    
-    await FlutterCallkitIncoming.endAllCalls(); 
+
+    await FlutterCallkitIncoming.endAllCalls();
 
     currentCallId.value = null;
     GlobalCallService.to.incomingCall.value = null;
@@ -1340,7 +1375,7 @@ class GoLiveController extends GetxController {
     }
     GlobalCallService.to.currentCallId.value =
         null; // نغيرها في النهاية لضمان عمل الـ Cleanup
-    
+
     // 🗑️ Optional: Remove controller from memory if no call is active and we are not in GoLive screen
     if (Get.isRegistered<GoLiveController>() && Get.currentRoute != 'Go live') {
       debugPrint('📞 [GoLiveController] Self-disposing to save memory...');
@@ -1400,8 +1435,8 @@ class UsersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 🚀 Use Get.find or non-permanent put. Default is lazy initialized in main.dart
-    final controller = Get.isRegistered<GoLiveController>() 
-        ? Get.find<GoLiveController>() 
+    final controller = Get.isRegistered<GoLiveController>()
+        ? Get.find<GoLiveController>()
         : Get.put(GoLiveController());
 
     return Scaffold(
