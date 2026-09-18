@@ -1,6 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'maarof_controller.dart';
 import 'maarof_models.dart';
+
+/// 🏷️ بادج كود المفتاح أو السكينة لتسهيل الإشارة والتعديل أثناء التطوير
+class DevCodeBadge extends StatelessWidget {
+  final String code;
+  final Color? color;
+
+  const DevCodeBadge({
+    super.key,
+    required this.code,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Get.isRegistered<MaarofController>()) {
+      return const SizedBox.shrink();
+    }
+    final controller = Get.find<MaarofController>();
+    return Obx(() {
+      if (!controller.showDeviceCodes.value) {
+        return const SizedBox.shrink();
+      }
+      return IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 3.0, vertical: 1.0),
+          decoration: BoxDecoration(
+            color: const Color(0xE60A101D),
+            borderRadius: BorderRadius.circular(3.0),
+            border: Border.all(
+              color: color ?? const Color(0xFFFFD54F),
+              width: 0.8,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Text(
+            code,
+            style: TextStyle(
+              color: color ?? const Color(0xFFFFD54F),
+              fontSize: 7.5,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+}
+
+/// 🏷️ استخراج كود مختصر ومميز لكل خط 66kV
+String getShortLineCode(String id) {
+  switch (id) {
+    case 'AZBAKIA':
+      return 'AZB';
+    case 'SAYEDA1':
+      return 'SYD1';
+    case 'NSABT3':
+      return 'NSB3';
+    case 'NSABT1':
+      return 'NSB1';
+    case 'NSABT2':
+      return 'NSB2';
+    case 'SAYEDA2':
+      return 'SYD2';
+    default:
+      return id;
+  }
+}
 
 /// 🔲 رمز قاطع الدائرة (Circuit Breaker CB)
 class BreakerSymbol extends StatelessWidget {
@@ -205,80 +282,120 @@ class _DisconnectorPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // لون السكينة: أحمر (أو مخصص) للموصل، وأخضر (أو برتقالي أو سماوي مخصص) للمفصول
-    final switchColor = isClosed
-        ? (closedColor ?? const Color(0xFFFF2222))
-        : (openColor ?? const Color(0xFF00E676));
+    const busColor = Color(0xFF00FF00);
+    final redColor = closedColor ?? const Color(0xFFFF2222);
+    final orangeColor = openColor ?? const Color(0xFFFFA726);
 
-    final linePaint = Paint()
-      ..color = switchColor
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.square;
-
-    final terminalPaint = Paint()
-      ..color = switchColor
-      ..strokeWidth = 2.0
+    final busLinePaint = Paint()
+      ..color = busColor
+      ..strokeWidth = 2.8
       ..strokeCap = StrokeCap.square;
 
     if (!isHorizontal) {
       final cx = size.width / 2;
-      final topY = 0.0;
-      final botY = size.height;
+      final topDotY = 3.2;
+      final botDotY = size.height - 3.2;
 
-      // أطراف السكينة العلوية والسفلية (Terminal stops)
+      // 1. وصول خطوط التغذية الخضراء حتى نقطتي التلامس
+      canvas.drawLine(Offset(cx, 0), Offset(cx, topDotY), busLinePaint);
       canvas.drawLine(
-          Offset(cx - 3.2, topY), Offset(cx + 3.2, topY), terminalPaint);
-      canvas.drawLine(
-          Offset(cx - 3.2, botY), Offset(cx + 3.2, botY), terminalPaint);
-
-      // العلامة الرأسية الجانبية
-      canvas.drawLine(Offset(cx + 4.5, topY + 1.0),
-          Offset(cx + 4.5, botY - 1.0), terminalPaint);
+          Offset(cx, botDotY), Offset(cx, size.height), busLinePaint);
 
       if (isClosed) {
-        // خط مستقيم يربط الطرفين (أحمر موصل)
-        canvas.drawLine(Offset(cx, topY), Offset(cx, botY), linePaint);
+        // 2. موصل (CLOSED): نقطتان حمراوان + جسر أحمر يربط بينهما
+        final dotPaint = Paint()
+          ..color = redColor
+          ..style = PaintingStyle.fill;
+
+        canvas.drawCircle(Offset(cx, topDotY), 2.5, dotPaint);
+        canvas.drawCircle(Offset(cx, botDotY), 2.5, dotPaint);
+
+        final bridgePaint = Paint()
+          ..color = redColor
+          ..strokeWidth = 2.4
+          ..style = PaintingStyle.stroke
+          ..strokeJoin = StrokeJoin.miter
+          ..strokeCap = StrokeCap.square;
+
+        final bridgePath = Path()
+          ..moveTo(cx, topDotY)
+          ..lineTo(cx + 3.8, topDotY)
+          ..lineTo(cx + 3.8, botDotY)
+          ..lineTo(cx, botDotY);
+
+        canvas.drawPath(bridgePath, bridgePaint);
       } else {
-        // ريشة مفتوحة لليمين بزاوية قائمة ونهاية عمودية (أخضر أو برتقالي مفصول)
-        final bladeLength = (botY - topY) * 0.75;
-        final bladeEnd =
-            Offset(cx + bladeLength * 0.7, botY - bladeLength * 0.7);
-        // ذراع الريشة
-        canvas.drawLine(Offset(cx, botY), bladeEnd, linePaint);
-        // شفة نهاية الريشة المتعامدة
+        // مفصول (OPEN): نقطتان برتقاليتان مع ريشة مفتوحة
+        final dotPaint = Paint()
+          ..color = orangeColor
+          ..style = PaintingStyle.fill;
+
+        canvas.drawCircle(Offset(cx, topDotY), 2.3, dotPaint);
+        canvas.drawCircle(Offset(cx, botDotY), 2.3, dotPaint);
+
+        final bladePaint = Paint()
+          ..color = orangeColor
+          ..strokeWidth = 2.2
+          ..strokeCap = StrokeCap.round;
+
+        // ريشة مفتوحة للأعلى جهة اليمين
         canvas.drawLine(
-          Offset(bladeEnd.dx, bladeEnd.dy - 2.5),
-          Offset(bladeEnd.dx, bladeEnd.dy + 2.5),
-          terminalPaint,
+          Offset(cx, botDotY),
+          Offset(cx + 6.5, topDotY + 3.0),
+          bladePaint,
         );
       }
     } else {
       final cy = size.height / 2;
-      final leftX = 0.0;
-      final rightX = size.width;
+      final leftDotX = 3.2;
+      final rightDotX = size.width - 3.2;
 
+      // 1. وصول خطوط التغذية الخضراء الأفقية حتى نقطتي التلامس
+      canvas.drawLine(Offset(0, cy), Offset(leftDotX, cy), busLinePaint);
       canvas.drawLine(
-          Offset(leftX, cy - 3.2), Offset(leftX, cy + 3.2), terminalPaint);
-      canvas.drawLine(
-          Offset(rightX, cy - 3.2), Offset(rightX, cy + 3.2), terminalPaint);
-
-      // العلامة الأفقية الجانبية
-      canvas.drawLine(Offset(leftX + 1.0, cy + 4.5),
-          Offset(rightX - 1.0, cy + 4.5), terminalPaint);
+          Offset(rightDotX, cy), Offset(size.width, cy), busLinePaint);
 
       if (isClosed) {
-        // خط مستقيم يربط الطرفين (أحمر موصل)
-        canvas.drawLine(Offset(leftX, cy), Offset(rightX, cy), linePaint);
+        // 2. موصل (CLOSED): نقطتان حمراوان + جسر أفقي أحمر
+        final dotPaint = Paint()
+          ..color = redColor
+          ..style = PaintingStyle.fill;
+
+        canvas.drawCircle(Offset(leftDotX, cy), 2.5, dotPaint);
+        canvas.drawCircle(Offset(rightDotX, cy), 2.5, dotPaint);
+
+        final bridgePaint = Paint()
+          ..color = redColor
+          ..strokeWidth = 2.4
+          ..style = PaintingStyle.stroke
+          ..strokeJoin = StrokeJoin.miter
+          ..strokeCap = StrokeCap.square;
+
+        final bridgePath = Path()
+          ..moveTo(leftDotX, cy)
+          ..lineTo(leftDotX, cy - 3.8)
+          ..lineTo(rightDotX, cy - 3.8)
+          ..lineTo(rightDotX, cy);
+
+        canvas.drawPath(bridgePath, bridgePaint);
       } else {
-        // ريشة مفتوحة (أخضر أو برتقالي مفصول)
-        final bladeLength = (rightX - leftX) * 0.75;
-        final bladeEnd =
-            Offset(leftX + bladeLength * 0.7, cy - bladeLength * 0.7);
-        canvas.drawLine(Offset(leftX, cy), bladeEnd, linePaint);
+        // مفصول (OPEN): نقطتان برتقاليتان مع ريشة مفتوحة
+        final dotPaint = Paint()
+          ..color = orangeColor
+          ..style = PaintingStyle.fill;
+
+        canvas.drawCircle(Offset(leftDotX, cy), 2.3, dotPaint);
+        canvas.drawCircle(Offset(rightDotX, cy), 2.3, dotPaint);
+
+        final bladePaint = Paint()
+          ..color = orangeColor
+          ..strokeWidth = 2.2
+          ..strokeCap = StrokeCap.round;
+
         canvas.drawLine(
-          Offset(bladeEnd.dx - 2.5, bladeEnd.dy),
-          Offset(bladeEnd.dx + 2.5, bladeEnd.dy),
-          terminalPaint,
+          Offset(leftDotX, cy),
+          Offset(size.width / 2 + 2.0, cy - 6.5),
+          bladePaint,
         );
       }
     }
@@ -288,7 +405,8 @@ class _DisconnectorPainter extends CustomPainter {
   bool shouldRepaint(covariant _DisconnectorPainter oldDelegate) =>
       oldDelegate.isClosed != isClosed ||
       oldDelegate.isHorizontal != isHorizontal ||
-      oldDelegate.openColor != openColor;
+      oldDelegate.openColor != openColor ||
+      oldDelegate.closedColor != closedColor;
 }
 
 /// 🔀 رمز سكينة الـ TIE الأفقية على البارة (Horizontal Bus Tie Switch)
@@ -614,15 +732,17 @@ class TransformerBayWidget extends StatelessWidget {
   final SwitchState secCbState;
   final SwitchState busDsAState;
   final SwitchState busDsBState;
-  final SwitchState ngrDsState;
+  final SwitchState? ngrDsState;
   final SwitchState ngrEsState;
   final String busKv;
   final VoidCallback onPriCbTap;
   final VoidCallback onSecCbTap;
   final VoidCallback onBusDsATap;
   final VoidCallback onBusDsBTap;
-  final VoidCallback onNgrDsTap;
+  final VoidCallback? onNgrDsTap;
   final VoidCallback onNgrEsTap;
+  final double? incomerTargetX;
+  final double bottomStickEndY;
 
   const TransformerBayWidget({
     super.key,
@@ -631,15 +751,17 @@ class TransformerBayWidget extends StatelessWidget {
     required this.secCbState,
     required this.busDsAState,
     required this.busDsBState,
-    required this.ngrDsState,
+    this.ngrDsState,
     required this.ngrEsState,
     required this.busKv,
     required this.onPriCbTap,
     required this.onSecCbTap,
     required this.onBusDsATap,
     required this.onBusDsBTap,
-    required this.onNgrDsTap,
+    this.onNgrDsTap,
     required this.onNgrEsTap,
+    this.incomerTargetX,
+    this.bottomStickEndY = 455.0,
   });
 
   @override
@@ -654,89 +776,98 @@ class TransformerBayWidget extends StatelessWidget {
                 : 'محول 4';
 
     const double centerX = 75.0;
-    const double leftArmX = 45.0;
-    const double rightArmX = 105.0;
+    const double leftArmX =
+        55.0; // مطابقة تماماً للمسافة البينية في خلايا الخطوط كالسيدة (40px بين الذراعين)
+    const double rightArmX = 95.0;
     const double ngrX = 22.0;
+    final double totalWidth =
+        incomerTargetX != null ? (incomerTargetX! + 30.0) : 150.0;
 
     return SizedBox(
-      width: 150,
-      height: 265,
+      width: totalWidth,
+      height: bottomStickEndY,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // =========================================================
-          // 1. تفريعة السكاكين المزدوجة من البارتين (BB1 و BB2)
+          // 1. تفريعة السكاكين المزدوجة من البارتين (BB1 و BB2) - مطابقة لخلية السيدة والخطوط
           // =========================================================
           // أ. الذراع الأيسر المتصل بـ BB1 (يبدأ من Y=0 ويعبر BB2 إلى السكينة A)
           Positioned(
-            left: leftArmX - 1.1,
+            left: leftArmX - 1.0,
             top: 0,
-            width: 2.2,
-            height: 44,
-            child: Container(color: Colors.white),
+            width: 2.0,
+            height: 64,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           Positioned(
             left: leftArmX - 8.0,
-            top: 44,
+            top: 64,
             child: DisconnectorSymbol(
               state: busDsAState,
-              size: 14,
-              openColor: const Color(0xFF00E5FF),
-              closedColor: const Color(0xFF00E5FF),
+              size: 16.0,
               onTap: onBusDsATap,
             ),
           ),
           Positioned(
-            left: leftArmX - 1.1,
-            top: 61,
-            width: 2.2,
-            height: 5,
-            child: Container(color: Colors.white),
+            left: leftArmX + 11,
+            top: 64,
+            child: DevCodeBadge(code: '${transformer.id}-DS1'),
+          ),
+          Positioned(
+            left: leftArmX - 1.0,
+            top: 80,
+            width: 2.0,
+            height: 10,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // ب. الذراع الأيمن المتصل بـ BB2 (يبدأ من Y=40 على البارة الثانية للسكينة B)
           Positioned(
-            left: rightArmX - 1.1,
+            left: rightArmX - 1.0,
             top: 40,
-            width: 2.2,
-            height: 4,
-            child: Container(color: Colors.white),
+            width: 2.0,
+            height: 24,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           Positioned(
             left: rightArmX - 8.0,
-            top: 44,
+            top: 64,
             child: DisconnectorSymbol(
               state: busDsBState,
-              size: 14,
-              openColor: const Color(0xFF00E5FF),
-              closedColor: const Color(0xFF00E5FF),
+              size: 16.0,
               onTap: onBusDsBTap,
             ),
           ),
           Positioned(
-            left: rightArmX - 1.1,
-            top: 61,
-            width: 2.2,
-            height: 5,
-            child: Container(color: Colors.white),
+            left: rightArmX + 11,
+            top: 64,
+            child: DevCodeBadge(code: '${transformer.id}-DS2'),
+          ),
+          Positioned(
+            left: rightArmX - 1.0,
+            top: 80,
+            width: 2.0,
+            height: 10,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
-          // ج. الجسر الأفقي الجامع للذراعين أسفل السكينتين مباشرة عند Y=66
+          // ج. الجسر الأفقي الجامع للذراعين أسفل السكينتين مباشرة عند Y=90
           Positioned(
-            left: leftArmX - 1.1,
-            top: 66,
-            width: (rightArmX - leftArmX) + 2.2,
-            height: 2.2,
-            child: Container(color: Colors.white),
+            left: leftArmX - 1.0,
+            top: 90,
+            width: (rightArmX - leftArmX) + 2.0,
+            height: 2.0,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // خط نازل من الجسر للقاطع
           Positioned(
-            left: centerX - 1.1,
-            top: 66,
-            width: 2.2,
-            height: 8,
-            child: Container(color: Colors.white),
+            left: centerX - 1.0,
+            top: 90,
+            width: 2.0,
+            height: 16,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // =========================================================
@@ -744,7 +875,7 @@ class TransformerBayWidget extends StatelessWidget {
           // =========================================================
           Positioned(
             left: centerX - 6.5,
-            top: 74,
+            top: 106,
             child: BreakerSymbol(
               state: priCbState,
               size: 13.0,
@@ -753,42 +884,32 @@ class TransformerBayWidget extends StatelessWidget {
               onTap: onPriCbTap,
             ),
           ),
+          Positioned(
+            left: centerX + 11,
+            top: 104,
+            child: DevCodeBadge(code: '${transformer.id}-CB'),
+          ),
 
           // =========================================================
-          // 3. بلوك القياسات مقسوم بالخط الرأسي تماماً كما في شاشة الإسكادا:
-          //    الأرقام على اليسار والوحدات على اليمين والخط بالمنتصف
+          // 3. بلوك القياسات: كل قراءة على سطر مستقل على يسار المحول
           // =========================================================
           Positioned(
-            right: (150.0 - centerX) + 4.0,
-            top: 88,
+            left: 0,
+            top: 122,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildValText(m.mw.toStringAsFixed(1), const Color(0xFF00E5FF)),
-                _buildValText(
-                    m.mvar.toStringAsFixed(1), const Color(0xFFFFA726)),
-                _buildValText(
-                    m.mva.toStringAsFixed(1), const Color(0xFFFFA726)),
-                _buildValText(
-                    m.currentA.toStringAsFixed(0), const Color(0xFFFFA726)),
-                _buildValText((m.powerFactor ?? 1.0).toStringAsFixed(2),
+                _buildMeasRow(
+                    m.mw.toStringAsFixed(1), 'MW', const Color(0xFF00E5FF)),
+                _buildMeasRow(
+                    m.mvar.toStringAsFixed(1), 'MVAR', const Color(0xFFFFA726)),
+                _buildMeasRow(
+                    m.mva.toStringAsFixed(1), 'MVA', const Color(0xFFFFA726)),
+                _buildMeasRow(m.currentA.toStringAsFixed(0), 'A',
+                    const Color(0xFFFFA726)),
+                _buildMeasRow((m.powerFactor ?? 1.0).toStringAsFixed(2), 'PF',
                     const Color(0xFF78909C)),
-              ],
-            ),
-          ),
-          Positioned(
-            left: centerX + 4.0,
-            top: 88,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildUnitText('MW'),
-                _buildUnitText('MVAR'),
-                _buildUnitText('MVA'),
-                _buildUnitText('A'),
-                _buildUnitText('PF'),
               ],
             ),
           ),
@@ -799,7 +920,7 @@ class TransformerBayWidget extends StatelessWidget {
           // أ. اسم المحول يسار (محول 1 / TR1)
           Positioned(
             left: 8,
-            top: 130,
+            top: 190,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -831,43 +952,41 @@ class TransformerBayWidget extends StatelessWidget {
               child: CustomPaint(
                 painter: _TransformerBodyPainter(
                   centerX: centerX,
-                  topCircleY: 154.0,
-                  botCircleY: 166.0,
-                  radius: 10.5,
+                  topCircleY: 210.0,
+                  botCircleY: 224.0,
+                  radius: 11.5,
                   ngrX: ngrX,
+                  cbBottomY: 119.0,
+                  bottomStickEndY: bottomStickEndY,
+                  yTurn: bottomStickEndY - 35.0,
+                  incomerTargetX: incomerTargetX,
                 ),
               ),
             ),
           ),
 
-          // ج. سكاكين تفريعة NGR التفاعلية
+          // ج. سكينة تأريض تفريعة NGR التفاعلية (NES)
           Positioned(
-            left: ngrX - 6.0,
-            top: 172,
-            child: DisconnectorSymbol(
-              state: ngrDsState,
-              size: 11,
-              openColor: const Color(0xFF00E5FF),
-              closedColor: const Color(0xFF00E5FF),
-              onTap: onNgrDsTap,
-            ),
-          ),
-          Positioned(
-            left: ngrX - 6.0,
-            top: 188,
+            left: ngrX - 7.0,
+            top: 236,
             child: DisconnectorSymbol(
               state: ngrEsState,
-              size: 11,
+              size: 14.0,
               openColor: const Color(0xFF00E5FF),
               closedColor: const Color(0xFF00E5FF),
               onTap: onNgrEsTap,
             ),
           ),
+          Positioned(
+            left: ngrX - 44.0,
+            top: 236,
+            child: DevCodeBadge(code: '${transformer.id}-NES'),
+          ),
 
           // د. بيانات المحول يمين (19 TAP, MACO, 66/23.5 KV, 40 MVA)
           Positioned(
             left: centerX + 15,
-            top: 140,
+            top: 190,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -917,103 +1036,13 @@ class TransformerBayWidget extends StatelessWidget {
                 const Text(
                   '40 MVA',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // =========================================================
-          // 5. قاطع الخرج 11kV (Secondary Circuit Breaker)
-          // =========================================================
-          Positioned(
-            left: centerX - 6.5,
-            top: 212,
-            child: BreakerSymbol(
-              state: secCbState,
-              size: 13.0,
-              closedColor: const Color(0xFFFFA726),
-              openBorderColor: const Color(0xFF00E5FF),
-              onTap: onSecCbTap,
-            ),
-          ),
-
-          // =========================================================
-          // 6. خط الخرج الهابط المتصل مباشرة بقضيب الـ 11kV
-          // =========================================================
-          Positioned(
-            left: centerX - 1.1,
-            top: 225,
-            width: 2.2,
-            height: 40,
-            child: Container(color: Colors.white),
-          ),
-
-          // بيان البارة السفلية فوق نقطة الاتصال بالبارة
-          Positioned(
-            left: 8,
-            bottom: 4,
-            child: Text(
-              transformer.id == 'TR1'
-                  ? 'BB 1'
-                  : transformer.id == 'TR2'
-                      ? 'BB 2'
-                      : transformer.id == 'TR3'
-                          ? 'BB 3'
-                          : 'BB 4',
-              style: const TextStyle(
-                color: Color(0xFFFFA726),
-                fontSize: 11.5,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            bottom: 4,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  busKv,
-                  style: const TextStyle(
                     color: Color(0xFF00E5FF),
-                    fontSize: 11.0,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(width: 3),
-                const Text(
-                  'KV',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.0,
-                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
-            ),
-          ),
-
-          // دائرة PT البنفسجية أسفل خط البارة مباشرة
-          Positioned(
-            left: centerX - 4.5,
-            top: 265,
-            child: Container(
-              width: 9,
-              height: 9,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFE040FB),
-                  width: 1.5,
-                ),
-              ),
             ),
           ),
         ],
@@ -1021,132 +1050,159 @@ class TransformerBayWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildValText(String val, Color color) {
-    return Container(
+  Widget _buildMeasRow(String val, String unit, Color valColor) {
+    return SizedBox(
       height: 13,
-      alignment: Alignment.centerRight,
-      child: Text(
-        val,
-        style: TextStyle(
-          color: color,
-          fontSize: 9.5,
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.bold,
-          height: 1.0,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnitText(String unit) {
-    return Container(
-      height: 13,
-      alignment: Alignment.centerLeft,
-      child: Text(
-        unit,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 8.0,
-          fontWeight: FontWeight.w600,
-          height: 1.0,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            val,
+            style: TextStyle(
+              color: valColor,
+              fontSize: 9.5,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            unit,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 8.0,
+              fontWeight: FontWeight.w600,
+              height: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// رسم ملفات المحول النحاسية والمفتاح والتفريعة
 class _TransformerBodyPainter extends CustomPainter {
   final double centerX;
   final double topCircleY;
   final double botCircleY;
   final double radius;
   final double ngrX;
+  final double cbBottomY;
+  final double bottomStickEndY;
+  final double yTurn;
+  final double? incomerTargetX;
 
   _TransformerBodyPainter({
     this.centerX = 75.0,
-    this.topCircleY = 154.0,
-    this.botCircleY = 166.0,
-    this.radius = 10.5,
+    this.topCircleY = 210.0,
+    this.botCircleY = 224.0,
+    this.radius = 11.5,
     this.ngrX = 22.0,
+    this.cbBottomY = 119.0,
+    this.bottomStickEndY = 455.0,
+    this.yTurn = 425.0,
+    this.incomerTargetX,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final whiteLinePaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2.0
+    final greenLinePaint = Paint()
+      ..color = const Color(0xFF00FF00)
+      ..strokeWidth = 2.2
       ..strokeCap = StrokeCap.square;
 
-    final circlePaint = Paint()
-      ..color = Colors.white
+    final purpleLinePaint = Paint()
+      ..color = const Color(0xFFE040FB)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.square
+      ..strokeJoin = StrokeJoin.miter;
 
-    // خط واصل علوي للملفات من القاطع
-    canvas.drawLine(Offset(centerX, 87), Offset(centerX, topCircleY - radius),
-        whiteLinePaint);
-    // خط واصل سفلي للملفات إلى القاطع الثانوي
-    canvas.drawLine(Offset(centerX, botCircleY + radius), Offset(centerX, 212),
-        whiteLinePaint);
+    final topCirclePaint = Paint()
+      ..color = const Color(0xFF00FF00)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
 
-    // دائرتان متداخلتان باللون الأبيض
+    final botCirclePaint = Paint()
+      ..color = const Color(0xFFE040FB)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.6;
+
+    // خط واصل علوي للملفات من القاطع (أخضر كالدائرة العلوية)
+    canvas.drawLine(Offset(centerX, cbBottomY),
+        Offset(centerX, topCircleY - radius), greenLinePaint);
+
+    // خط واصل سفلي للملفات يمتد لأسفل:
+    if (incomerTargetX != null && (incomerTargetX! - centerX).abs() > 2.0) {
+      // ذراع بزاوية قايمة حادة (شكل L) من جسم المحول إلى قاطع خلية الدخول
+      final path = Path()
+        ..moveTo(centerX, botCircleY + radius)
+        ..lineTo(centerX, yTurn) // نزول رأسي حتى نقطة العطف
+        ..lineTo(incomerTargetX!, yTurn) // أفقي حتى الهدف
+        ..lineTo(incomerTargetX!, bottomStickEndY); // نزول رأسي للقاطع
+      canvas.drawPath(path, purpleLinePaint);
+    } else {
+      // نزول رأسي مستقيم
+      canvas.drawLine(Offset(centerX, botCircleY + radius),
+          Offset(centerX, bottomStickEndY), purpleLinePaint);
+    }
+
+    // دائرتان متداخلتان: العلوية خضراء والسفلية بنفسجية
     final topCenter = Offset(centerX, topCircleY);
     final botCenter = Offset(centerX, botCircleY);
-    canvas.drawCircle(topCenter, radius, circlePaint);
-    canvas.drawCircle(botCenter, radius, circlePaint);
+    canvas.drawCircle(topCenter, radius, topCirclePaint);
+    canvas.drawCircle(botCenter, radius, botCirclePaint);
 
-    // المعين البرتقالي عند التقاطع الأيمن ◇
-    final diamondCenter = Offset(centerX + 11.8, (topCircleY + botCircleY) / 2);
-    final diamondPath = Path()
-      ..moveTo(diamondCenter.dx, diamondCenter.dy - 3.2)
-      ..lineTo(diamondCenter.dx + 3.2, diamondCenter.dy)
-      ..lineTo(diamondCenter.dx, diamondCenter.dy + 3.2)
-      ..lineTo(diamondCenter.dx - 3.2, diamondCenter.dy)
-      ..close();
-
-    final diamondPaint = Paint()
-      ..color = const Color(0xFFFFA726)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6;
-    canvas.drawPath(diamondPath, diamondPaint);
-
-    // تفريعة التأريض النيوترال (NGR) جهة اليسار باللون البني
+    // تفريعة التأريض النيوترال (NGR) جهة اليسار
     final amberPaint = Paint()
       ..color = const Color(0xFFC67D0A)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.square;
 
-    // خط أفقي خارج من الدائرة السفلية إلى خط النيوترال
+    // خط أفقي خارج من الدائرة السفلية إلى خط النيوترال (بني)
     canvas.drawLine(Offset(centerX - radius, botCircleY),
         Offset(ngrX, botCircleY), amberPaint);
-    // خط رأسي هابط إلى السكينة الأولى
-    canvas.drawLine(Offset(ngrX, botCircleY), Offset(ngrX, 172), amberPaint);
-    // خط بين السكينة 1 والسكينة 2
-    canvas.drawLine(Offset(ngrX, 183), Offset(ngrX, 188), amberPaint);
-    // تفريعة أفقية خارجة لليسار بين السكينتين
-    canvas.drawLine(Offset(ngrX, 185), Offset(0, 185), amberPaint);
-    // خط بين السكينة 2 والمقاومة
-    canvas.drawLine(Offset(ngrX, 199), Offset(ngrX, 202), amberPaint);
 
-    // رمز مقاومة التأريض النيوترال NGR (Cyan Zig-zag Resistor)
+    final cyanLinePaint = Paint()
+      ..color = const Color(0xFF00E5FF)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.square;
+
+    // خط رأسي هابط مباشرة من خط المحول البني إلى سكينة NES (من 224 إلى 236)
+    canvas.drawLine(Offset(ngrX, botCircleY), Offset(ngrX, 236), cyanLinePaint);
+    // نقطة اتصال سماوية عند التقاطع لسد أي فراغ بصري
+    canvas.drawCircle(Offset(ngrX, botCircleY), 2.0,
+        Paint()..color = const Color(0xFF00E5FF));
+
+    // خط بين السكينة والمقاومة (من 252 إلى 258)
+    canvas.drawLine(Offset(ngrX, 252), Offset(ngrX, 258), cyanLinePaint);
+
+    // رمز مقاومة التأريض النيوترال NGR (Cyan Zig-zag Resistor من 258 إلى 274)
     final cyanPaint = Paint()
       ..color = const Color(0xFF00E5FF)
       ..strokeWidth = 1.8
       ..style = PaintingStyle.stroke;
 
     final ngrPath = Path()
-      ..moveTo(ngrX, 202)
-      ..lineTo(ngrX - 2.8, 204.5)
-      ..lineTo(ngrX + 2.8, 207.0)
-      ..lineTo(ngrX - 2.8, 209.5)
-      ..lineTo(ngrX, 212);
+      ..moveTo(ngrX, 258)
+      ..lineTo(ngrX - 3.5, 261.2)
+      ..lineTo(ngrX + 3.5, 264.4)
+      ..lineTo(ngrX - 3.5, 267.6)
+      ..lineTo(ngrX + 3.5, 270.8)
+      ..lineTo(ngrX, 274);
     canvas.drawPath(ngrPath, cyanPaint);
 
+    // خط رأسي بين المقاومة والأرضي (من 274 إلى 278)
+    canvas.drawLine(Offset(ngrX, 274), Offset(ngrX, 278), cyanLinePaint);
+
     // رمز الأرضي ⏚ بالسماوي (3 خطوط أفقية متدرجة)
-    canvas.drawLine(Offset(ngrX, 212), Offset(ngrX, 214), cyanPaint);
-    canvas.drawLine(Offset(ngrX - 6, 214), Offset(ngrX + 6, 214), cyanPaint);
-    canvas.drawLine(Offset(ngrX - 4, 217), Offset(ngrX + 4, 217), cyanPaint);
-    canvas.drawLine(Offset(ngrX - 2, 220), Offset(ngrX + 2, 220), cyanPaint);
+    canvas.drawLine(Offset(ngrX - 7, 278), Offset(ngrX + 7, 278), cyanPaint);
+    canvas.drawLine(
+        Offset(ngrX - 4.5, 281.5), Offset(ngrX + 4.5, 281.5), cyanPaint);
+    canvas.drawLine(Offset(ngrX - 2, 285), Offset(ngrX + 2, 285), cyanPaint);
   }
 
   @override
@@ -1272,6 +1328,14 @@ class Line66kVBayWidget extends StatelessWidget {
               onTap: onEarthDsTap,
             ),
           ),
+          Positioned(
+            top: 26,
+            left: centerX - 42,
+            child: DevCodeBadge(
+              code: '${getShortLineCode(line.id)}-ES',
+              color: const Color(0xFF4FC3F7),
+            ),
+          ),
 
           // 5. سكينة الخط الرأسية LINE_DS (برتقالي)
           Positioned(
@@ -1282,6 +1346,11 @@ class Line66kVBayWidget extends StatelessWidget {
               size: 16,
               onTap: onLineDsTap,
             ),
+          ),
+          Positioned(
+            top: 58,
+            left: centerX + 11,
+            child: DevCodeBadge(code: '${getShortLineCode(line.id)}-LDS'),
           ),
 
           // 6. الخط الرأسي الواصل بين سكينة الخط والقاطع
@@ -1302,6 +1371,11 @@ class Line66kVBayWidget extends StatelessWidget {
               size: 16,
               onTap: onCbTap,
             ),
+          ),
+          Positioned(
+            top: 86,
+            left: centerX + 11,
+            child: DevCodeBadge(code: '${getShortLineCode(line.id)}-CB'),
           ),
 
           // 8. الخط الرأسي الهابط من القاطع إلى جسر السكاكين
@@ -1343,6 +1417,11 @@ class Line66kVBayWidget extends StatelessWidget {
             ),
           ),
           Positioned(
+            top: busDsY,
+            left: rightArmX + 11,
+            child: DevCodeBadge(code: '${getShortLineCode(line.id)}-DS1'),
+          ),
+          Positioned(
             top: busDsBottomY,
             left: rightArmX - 1.1,
             width: 2.2,
@@ -1366,6 +1445,11 @@ class Line66kVBayWidget extends StatelessWidget {
               size: 16,
               onTap: onBusDsBTap,
             ),
+          ),
+          Positioned(
+            top: busDsY,
+            left: leftArmX - 42,
+            child: DevCodeBadge(code: '${getShortLineCode(line.id)}-DS2'),
           ),
           Positioned(
             top: busDsBottomY,
@@ -1452,6 +1536,25 @@ class ScadaLine66kVBay extends StatelessWidget {
     required this.bb1Y,
     required this.bb2Y,
   });
+
+  String _getShortLineCode(String id) {
+    switch (id) {
+      case 'AZBAKIA':
+        return 'AZB';
+      case 'SAYEDA1':
+        return 'SYD1';
+      case 'NSABT3':
+        return 'NSB3';
+      case 'NSABT1':
+        return 'NSB1';
+      case 'NSABT2':
+        return 'NSB2';
+      case 'SAYEDA2':
+        return 'SYD2';
+      default:
+        return id;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1552,25 +1655,27 @@ class ScadaLine66kVBay extends StatelessWidget {
             child: Container(color: const Color(0xFF00FF00)),
           ),
 
-          // سكينة التأريض الزرقاء متفرعة لليمين مع رمز الأرضي
+          // سكينة التأريض مع تدريجة الأرضي الزرقاء (مطابقة 100% لصورة الإسكادا الحقيقية)
           Positioned(
-            top: 102,
+            top: 96,
             left: centerX,
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: onEarthDsTap,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                      width: 14, height: 1.8, color: const Color(0xFF00FF00)),
-                  CustomPaint(
-                    size: const Size(18, 14),
-                    painter: _BlueEarthSwitchPainter(
-                      isClosed: earthDsState == SwitchState.closed,
-                    ),
-                  ),
-                ],
+              child: CustomPaint(
+                size: const Size(44, 24),
+                painter: _BlueEarthSwitchPainter(
+                  isClosed: earthDsState == SwitchState.closed,
+                ),
               ),
+            ),
+          ),
+          Positioned(
+            top: 97,
+            left: centerX + 46,
+            child: DevCodeBadge(
+              code: '${_getShortLineCode(line.id)}-ES',
+              color: const Color(0xFF4FC3F7),
             ),
           ),
 
@@ -1583,6 +1688,11 @@ class ScadaLine66kVBay extends StatelessWidget {
               size: 13.0,
               onTap: onCbTap,
             ),
+          ),
+          Positioned(
+            top: 130,
+            left: centerX + 11,
+            child: DevCodeBadge(code: '${_getShortLineCode(line.id)}-CB'),
           ),
 
           // خط رأسي من القاطع إلى جسر التوزيع
@@ -1621,6 +1731,11 @@ class ScadaLine66kVBay extends StatelessWidget {
             ),
           ),
           Positioned(
+            top: 184,
+            left: leftArmX + 11,
+            child: DevCodeBadge(code: '${_getShortLineCode(line.id)}-DS1'),
+          ),
+          Positioned(
             top: 202,
             left: leftArmX - 1.0,
             width: 2.0,
@@ -1644,6 +1759,11 @@ class ScadaLine66kVBay extends StatelessWidget {
               size: 16.0,
               onTap: onBusDsBTap,
             ),
+          ),
+          Positioned(
+            top: 184,
+            left: rightArmX + 11,
+            child: DevCodeBadge(code: '${_getShortLineCode(line.id)}-DS2'),
           ),
           Positioned(
             top: 202,
@@ -1692,39 +1812,96 @@ class ScadaLine66kVBay extends StatelessWidget {
   }
 }
 
-/// رسم سكينة التأريض الزرقاء مع الأرضي
+/// رسم سكينة التأريض مع تدريجة الأرضي الزرقاء (مطابق 100% لشاشة الإسكادا الحقيقية من الصورة)
 class _BlueEarthSwitchPainter extends CustomPainter {
   final bool isClosed;
-  _BlueEarthSwitchPainter({required this.isClosed});
+
+  _BlueEarthSwitchPainter({
+    required this.isClosed,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    const blueColor = Color(0xFF2979FF);
-    final paint = Paint()
-      ..color = blueColor
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.square;
+    const greenColor = Color(0xFF00FF00);
+    const blueColor = Color(0xFF0038FF);
 
-    final cy = size.height / 2;
+    final cy = size.height / 2 + 1.0;
+
+    // 1. العصا الخضراء الأفقية الممتدة من الخط الرئيسي
+    final greenPaint = Paint()
+      ..color = greenColor
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+
+    final dotPaint = Paint()
+      ..color = greenColor
+      ..style = PaintingStyle.fill;
+
+    const lineEndX = 17.0;
+    canvas.drawLine(Offset(0, cy), Offset(lineEndX, cy), greenPaint);
+
+    // نقطة التماس الخضراء (contact terminal)
+    canvas.drawCircle(Offset(lineEndX, cy), 1.6, dotPaint);
+
+    // 2. نقطة ارتكاز السكينة (Hinge) عند مدخل تدريجة الأرضي
+    const hingeX = 28.0;
+
+    // 3. ريشة السكينة الخضراء (تفتح لأعلى اليسار نحو نقطة التماس)
+    final bladePaint = Paint()
+      ..color = isClosed ? const Color(0xFFFF2222) : greenColor
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
 
     if (isClosed) {
-      canvas.drawLine(Offset(0, cy), Offset(size.width - 6, cy), paint);
+      // موصل: ريشة أفقية كاملة تصل نقطة التماس الخضراء بمدخل الأرضي
+      canvas.drawLine(Offset(lineEndX, cy), Offset(hingeX, cy), bladePaint);
     } else {
-      // ريشة مفتوحة للأعلى
-      canvas.drawLine(Offset(0, cy), Offset(size.width - 8, cy - 6), paint);
+      // مفصول (مطابق للصورة 100%): ريشة خضراء مائلة للأعلى واليسار متجهة نحو التماس
+      canvas.drawLine(
+        Offset(hingeX, cy),
+        Offset(hingeX - 8.5, cy - 8.5),
+        bladePaint,
+      );
     }
 
-    // رمز الأرضي باللون الأزرق
-    final groundX = size.width - 4;
-    canvas.drawLine(Offset(groundX, cy - 6), Offset(groundX, cy + 6), paint);
+    // نقطة المفصل (Hinge dot)
+    canvas.drawCircle(Offset(hingeX, cy), 1.5, dotPaint);
+
+    // 4. تدريجة الأرضي الزرقاء (Stepped Electric Blue Ground Symbol)
+    final bluePaint = Paint()
+      ..color = blueColor
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.square;
+
+    // ساق أفقية زرقاء ممتدة عبر التدريجة
+    canvas.drawLine(Offset(hingeX, cy), Offset(hingeX + 11.5, cy), bluePaint);
+
+    // الخطوط الرأسية المتدرجة للأرضي (أطول خط في البداية ويتدرج نحو الأصغر يميناً)
     canvas.drawLine(
-        Offset(groundX + 2.5, cy - 4), Offset(groundX + 2.5, cy + 4), paint);
+      Offset(hingeX + 2.8, cy - 6.5),
+      Offset(hingeX + 2.8, cy + 6.5),
+      bluePaint,
+    );
     canvas.drawLine(
-        Offset(groundX + 5, cy - 2), Offset(groundX + 5, cy + 2), paint);
+      Offset(hingeX + 5.6, cy - 4.8),
+      Offset(hingeX + 5.6, cy + 4.8),
+      bluePaint,
+    );
+    canvas.drawLine(
+      Offset(hingeX + 8.4, cy - 3.2),
+      Offset(hingeX + 8.4, cy + 3.2),
+      bluePaint,
+    );
+    canvas.drawLine(
+      Offset(hingeX + 11.2, cy - 1.6),
+      Offset(hingeX + 11.2, cy + 1.6),
+      bluePaint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BlueEarthSwitchPainter oldDelegate) =>
+      oldDelegate.isClosed != isClosed;
 }
 
 // =========================================================================
@@ -1790,6 +1967,11 @@ class ScadaTransformerBayWidget extends StatelessWidget {
               onTap: onBusDsATap,
             ),
           ),
+          Positioned(
+            left: leftArmX + 11,
+            top: 10,
+            child: DevCodeBadge(code: '${transformer.id}-DS1'),
+          ),
           // امتداد خط الذراع الأيسر هابطاً متجاوزاً منسوب البارة الثانية BB2 حتى جسر التجميع عند Y=68
           Positioned(
             left: leftArmX - 1.0,
@@ -1815,6 +1997,11 @@ class ScadaTransformerBayWidget extends StatelessWidget {
               size: 15.0,
               onTap: onBusDsBTap,
             ),
+          ),
+          Positioned(
+            left: rightArmX + 11,
+            top: 46,
+            child: DevCodeBadge(code: '${transformer.id}-DS2'),
           ),
           // امتداد خط الذراع الأيمن من السكينة B إلى جسر التجميع عند Y=68
           Positioned(
@@ -1852,6 +2039,11 @@ class ScadaTransformerBayWidget extends StatelessWidget {
               size: 13.0,
               onTap: onPriCbTap,
             ),
+          ),
+          Positioned(
+            left: centerX + 10,
+            top: 74,
+            child: DevCodeBadge(code: '${transformer.id}-CB'),
           ),
 
           // قياسات الابتدائي بجانب القاطع (MW, MVAR, MVA, A, PF)
@@ -1911,28 +2103,35 @@ class ScadaTransformerBayWidget extends StatelessWidget {
             ),
           ),
 
-          // رمز المحول (دائرتان متداخلتان باللون البنفسجي)
+          // رمز المحول (الدائرة العلوية خضراء والسفلية بنفسجية مع تفريعة أفقية وقيمة stp)
           Positioned(
             left: centerX - 14,
-            top: 101,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomPaint(
-                  size: const Size(28, 42),
-                  painter: _PurpleTransformerCirclesPainter(),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  stpText,
-                  style: const TextStyle(
-                    color: Color(0xFF00FF00),
-                    fontSize: 8.5,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
+            top: 104,
+            child: SizedBox(
+              width: 56,
+              height: 40,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CustomPaint(
+                    size: const Size(44, 40),
+                    painter: const _ScadaTransformerCirclesPainter(),
                   ),
-                ),
-              ],
+                  Positioned(
+                    left: 28,
+                    top: 14,
+                    child: Text(
+                      stpText,
+                      style: const TextStyle(
+                        color: Color(0xFF00FF00),
+                        fontSize: 8.5,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -2002,20 +2201,36 @@ class ScadaTransformerBayWidget extends StatelessWidget {
   }
 }
 
-/// رسم دائرتين متداخلتين باللون البنفسجي للمحول
-class _PurpleTransformerCirclesPainter extends CustomPainter {
+/// رسم دائرتي المحول المتداخلتين (الدائرة العلوية خضراء والسفلية بنفسجية مع خط أفقي لليمين)
+/// مطابق 100% لصورة الإسكادا الحقيقية
+class _ScadaTransformerCirclesPainter extends CustomPainter {
+  const _ScadaTransformerCirclesPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
+    const greenColor = Color(0xFF00FF00);
     const purpleColor = Color(0xFFE040FB);
-    final paint = Paint()
+
+    final greenCirclePaint = Paint()
+      ..color = greenColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+
+    final purpleCirclePaint = Paint()
       ..color = purpleColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 2.6;
 
-    final cx = size.width / 2;
+    const cx = 14.0;
     const r = 11.0;
-    canvas.drawCircle(Offset(cx, 13), r, paint);
-    canvas.drawCircle(Offset(cx, 27), r, paint);
+    const topY = 12.0;
+    const botY = 26.5;
+
+    // 1. الدائرة العلوية (ملف 66kV الابتدائي باللون الأخضر)
+    canvas.drawCircle(const Offset(cx, topY), r, greenCirclePaint);
+
+    // 2. الدائرة السفلية (ملف 11kV الثانوي باللون البنفسجي)
+    canvas.drawCircle(const Offset(cx, botY), r, purpleCirclePaint);
   }
 
   @override
@@ -2029,144 +2244,327 @@ class Scada11kVCellWidget extends StatelessWidget {
   final FeederBay cell;
   final SwitchState cbState;
   final VoidCallback onCbTap;
+  final double cellWidth;
 
   const Scada11kVCellWidget({
     super.key,
     required this.cell,
     required this.cbState,
     required this.onCbTap,
+    this.cellWidth = 36.0,
   });
 
   @override
   Widget build(BuildContext context) {
     final isCap =
         cell.code == 'K02' || cell.code == 'K17' || cell.code == 'K40';
+    final isIncomer =
+        cell.code == 'K05' || cell.code == 'K21' || cell.code == 'K35';
     final hasCurrent = cell.measurements.currentA != 0;
+    const double busbarY = 42.0;
+    final double centerX = cellWidth / 2;
 
     return SizedBox(
-      width: 34,
+      width: cellWidth,
       height: 310,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
-          // 1. كود الخلية (K01, K02...) مكتوب رأسياً بلون أخضر فوق البارة مباشرة
+          // 1. مقطع البارة البنفسجية الأفقي الممتد عبر كامل عرض الخلية
           Positioned(
-            top: 2,
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                cell.code,
-                style: const TextStyle(
-                  color: Color(0xFF76FF03),
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-          ),
-
-          // 2. مقطع البارة البنفسجية الأفقي المتصل بين الخلايا
-          Positioned(
-            top: 25,
+            top: busbarY,
             left: 0,
             right: 0,
             height: 3.0,
             child: Container(color: const Color(0xFFE040FB)),
           ),
 
-          // 3. قاطع الدائرة ملتصق بالبارة (مربع أحمر مغلق، أو مربع أخضر مفرغ إذا كان مفتوحاً)
+          // 2. نقطة العقدة على البارة (Pink/Magenta dot)
           Positioned(
-            top: 26,
-            child: BreakerSymbol(
-              state: cbState,
-              size: 11.5,
-              onTap: onCbTap,
+            top: busbarY - 1.0,
+            left: centerX - 2.5,
+            child: Container(
+              width: 5.0,
+              height: 5.0,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE040FB),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
 
-          // 4. الخط الطولي البنفسجي الهابط بطول 135 بكسل
-          Positioned(
-            top: 38,
-            left: 16.2,
-            width: 1.6,
-            height: 135,
-            child: Container(color: const Color(0xFFE040FB)),
-          ),
+          // =========================================================
+          // أ. إذا كانت الخلية هي دخول محول (INCOMER: K05, K21, K35)
+          // =========================================================
+          if (isIncomer) ...[
+            // الخط الهابط من المحول علوياً
+            Positioned(
+              top: 0,
+              left: centerX - 1.1,
+              width: 2.2,
+              height: 15.0,
+              child: Container(color: const Color(0xFFE040FB)),
+            ),
 
-          // 5. رمز المكثف إن وجد، أو قراءة التيار على الخط الطولي
-          if (isCap) ...[
+            // قاطع الدخول يقع فوق البارة (مربع أحمر مصمت عند الإغلاق ومربع أخضر مفرغ عند الفتح)
             Positioned(
-              top: 85,
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border:
-                      Border.all(color: const Color(0xFF00FF00), width: 1.5),
-                ),
+              top: 15.0,
+              left: centerX - 6.5,
+              child: BreakerSymbol(
+                state: cbState,
+                size: 13.0,
+                closedColor: const Color(0xFFFF0000),
+                openBorderColor: const Color(0xFF00FF00),
+                onTap: onCbTap,
               ),
             ),
-            const Positioned(
-              top: 118,
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  '0.0 MVAR',
-                  style: TextStyle(
-                    color: Color(0xFF00FF00),
-                    fontSize: 8.0,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-            ),
-          ] else if (hasCurrent) ...[
-            Positioned(
-              top: 75,
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  '${cell.measurements.currentA.toStringAsFixed(1)}  A',
-                  style: const TextStyle(
-                    color: Color(0xFF00FF00),
-                    fontSize: 8.0,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-            ),
-          ],
 
-          // 6. اسم الخلية بالأسفل مكتوب رأسياً باللون الأبيض
-          if (cell.name.isNotEmpty)
+            // الخط النازل من القاطع مباشرة إلى نقطة الاتصال بالبارة
             Positioned(
-              bottom: 4,
-              child: RotatedBox(
-                quarterTurns: 3,
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 125),
+              top: 28.0,
+              left: centerX - 1.1,
+              width: 2.2,
+              height: busbarY - 28.0,
+              child: Container(color: const Color(0xFFE040FB)),
+            ),
+
+            // كود خلية الدخول (K21, K05, K35) يكتب أسفل البارة بالأصفر رأسياً
+            Positioned(
+              top: busbarY + 8.0,
+              left: centerX - 12.0,
+              width: 24.0,
+              child: Center(
+                child: RotatedBox(
+                  quarterTurns: 3,
                   child: Text(
-                    cell.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    cell.code,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFFFEE58),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
                     ),
                   ),
                 ),
               ),
             ),
+          ]
+
+          // =========================================================
+          // ب. إذا كانت الخلية مغذي خروج عادي (OUTGOING FEEDER)
+          // =========================================================
+          else ...[
+            // كود الخلية (K20, K22, ...) مكتوب رأسياً بالأصفر فوق البارة تماماً
+            Positioned(
+              top: 8.0,
+              left: centerX - 12.0,
+              width: 24.0,
+              child: Center(
+                child: RotatedBox(
+                  quarterTurns: 3,
+                  child: Text(
+                    cell.code,
+                    style: const TextStyle(
+                      color: Color(0xFFFFEE58),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // خط واصل هابط من البارة إلى القاطع
+            Positioned(
+              top: busbarY + 3.0,
+              left: centerX - 0.9,
+              width: 1.8,
+              height: 12.0,
+              child: Container(color: const Color(0xFFE040FB)),
+            ),
+
+            // قاطع المغذي أسفل البارة (مربع أحمر مصمت عند الإغلاق ومربع أخضر مفرغ عند الفتح)
+            Positioned(
+              top: busbarY + 15.0,
+              left: centerX - 6.5,
+              child: BreakerSymbol(
+                state: cbState,
+                size: 13.0,
+                closedColor: const Color(0xFFFF0000),
+                openBorderColor: const Color(0xFF00FF00),
+                onTap: onCbTap,
+              ),
+            ),
+
+            // الخط الطولي البنفسجي الهابط الحامل للرموز والقراءات
+            Positioned(
+              top: busbarY + 28.0,
+              left: centerX - 0.8,
+              width: 1.6,
+              height: 100.0,
+              child: Container(color: const Color(0xFFE040FB)),
+            ),
+
+            // في حالة المكثف (K02, K17, K40)
+            if (isCap) ...[
+              Positioned(
+                top: busbarY + 48.0,
+                left: centerX - 7.0,
+                child: Container(
+                  width: 14.0,
+                  height: 14.0,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border:
+                        Border.all(color: const Color(0xFF00FF00), width: 1.5),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: busbarY + 80.0,
+                left: centerX - 14.0,
+                width: 28.0,
+                child: const Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      '0.0 MVAR',
+                      style: TextStyle(
+                        color: Color(0xFF00FF00),
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              // رمز محول التيار CT: حلقة دائرية صغيرة مفرغة على الخط
+              Positioned(
+                top: busbarY + 44.0,
+                left: centerX - 3.25,
+                child: Container(
+                  width: 6.5,
+                  height: 6.5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border:
+                        Border.all(color: const Color(0xFFE040FB), width: 1.2),
+                  ),
+                ),
+              ),
+
+              // رمز رأس الكابل / اتجاه التغذية: سهم بنفسجي مصمت متجه لأسفل ▼
+              Positioned(
+                top: busbarY + 58.0,
+                left: centerX - 3.5,
+                child: CustomPaint(
+                  size: const Size(7.0, 5.0),
+                  painter:
+                      _DownwardTrianglePainter(color: const Color(0xFFE040FB)),
+                ),
+              ),
+
+              // رمز الوحدة 'A' مكتوب رأسياً بالأبيض
+              Positioned(
+                top: busbarY + 76.0,
+                left: centerX - 10.0,
+                width: 20.0,
+                child: const Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      'A',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.0,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // قيمة التيار بالأخضر الفاتح #00E676 مكتوبة رأسياً
+              Positioned(
+                top: busbarY + 98.0,
+                left: centerX - 14.0,
+                width: 28.0,
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      hasCurrent
+                          ? cell.measurements.currentA.toStringAsFixed(1)
+                          : '0.0',
+                      style: const TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            // اسم الخلية بالأسفل مكتوب رأسياً باللون الأبيض
+            if (cell.name.isNotEmpty)
+              Positioned(
+                bottom: 4.0,
+                left: centerX - 15.0,
+                width: 30.0,
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 110),
+                      child: Text(
+                        cell.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// مثلث بنفسجي مصمت متجه لأسفل ▼ لرمز رأس كابل المغذي
+class _DownwardTrianglePainter extends CustomPainter {
+  final Color color;
+  const _DownwardTrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 🔀 رمز سكينة الـ TIE الأفقية على البارة بتصميم مطابق لشاشة الإسكادا الحقيقية بالملي
@@ -2218,37 +2616,66 @@ class _ScadaBusTiePainter extends CustomPainter {
     final cy = size.height / 2;
     final cx = size.width / 2;
 
-    // القضبان الطرفية الأفقية السماوية المميزة لشاشات PCS-9700
-    final cyanPaint = Paint()
-      ..color = const Color(0xFF00E5FF)
-      ..strokeWidth = 2.4
+    const busColor = Color(0xFF00FF00);
+    const redColor = Color(0xFFFF2222);
+
+    final leftDotX = cx - 6.0;
+    final rightDotX = cx + 6.0;
+
+    // 1. أطراف البارة الخضراء القادمة من اليمين واليسار حتى نقطتي التلامس
+    final busLinePaint = Paint()
+      ..color = busColor
+      ..strokeWidth = 2.8
       ..strokeCap = StrokeCap.square;
 
-    // القضيب العلوي
+    canvas.drawLine(Offset(0, cy), Offset(leftDotX, cy), busLinePaint);
     canvas.drawLine(
-        Offset(cx - 8, cy - 4.5), Offset(cx + 8, cy - 4.5), cyanPaint);
-    // القضيب السفلي
-    canvas.drawLine(
-        Offset(cx - 8, cy + 4.5), Offset(cx + 8, cy + 4.5), cyanPaint);
+        Offset(rightDotX, cy), Offset(size.width, cy), busLinePaint);
 
     if (isClosed) {
-      // موصل: خط مستمر يعبر بين الطرفين
-      final closedPaint = Paint()
-        ..color = const Color(0xFFFF2222)
-        ..strokeWidth = 2.0;
-      canvas.drawLine(Offset(0, cy), Offset(size.width, cy), closedPaint);
+      // 2. السكينة موصلة (CLOSED) - مطابقة 100% لصورة الإسكادا الحقيقية:
+      // نقطتا تلامس حمراوان عند طرفي البارة + جسر أحمر أفقي يعلوهما ويربط بينهما
+      final dotPaint = Paint()
+        ..color = redColor
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(Offset(leftDotX, cy), 2.5, dotPaint);
+      canvas.drawCircle(Offset(rightDotX, cy), 2.5, dotPaint);
+
+      final bridgePaint = Paint()
+        ..color = redColor
+        ..strokeWidth = 2.4
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.miter
+        ..strokeCap = StrokeCap.square;
+
+      final bridgePath = Path()
+        ..moveTo(leftDotX, cy)
+        ..lineTo(leftDotX, cy - 3.8)
+        ..lineTo(rightDotX, cy - 3.8)
+        ..lineTo(rightDotX, cy);
+
+      canvas.drawPath(bridgePath, bridgePaint);
     } else {
-      // مفصول: ريشة برتقالية وفراغ بين نهايتي البارة
-      final busLinePaint = Paint()
-        ..color = Colors.white
-        ..strokeWidth = 2.0;
-      canvas.drawLine(Offset(0, cy), Offset(cx - 6, cy), busLinePaint);
-      canvas.drawLine(Offset(cx + 6, cy), Offset(size.width, cy), busLinePaint);
+      // السكينة مفصولة (OPEN):
+      // نقطتا تلامس برتقاليتان مع ريشة مفتوحة للأعلى
+      final dotPaint = Paint()
+        ..color = const Color(0xFFFFA726)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(Offset(leftDotX, cy), 2.3, dotPaint);
+      canvas.drawCircle(Offset(rightDotX, cy), 2.3, dotPaint);
 
       final bladePaint = Paint()
         ..color = const Color(0xFFFFA726)
-        ..strokeWidth = 2.0;
-      canvas.drawLine(Offset(cx - 6, cy), Offset(cx + 3, cy - 4.5), bladePaint);
+        ..strokeWidth = 2.2
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawLine(
+        Offset(leftDotX, cy),
+        Offset(cx + 2.0, cy - 6.5),
+        bladePaint,
+      );
     }
   }
 
@@ -2261,7 +2688,7 @@ class _ScadaBusTiePainter extends CustomPainter {
 /// مطابقة 100% للصورة المرفقة من المستخدم:
 /// - قوس رأسي صاعد (Inverted U Loop) يربط بين البارتين
 /// - الرجل اليسرى تبدأ من البارة السفلى BB2 وتمر عبر البارة العليا BB1
-///   وتحتوي على سكينة كابلر 1 برتقالية ثم قاطع الكابلر (مربع سماوي مفرغ عند الفتح)
+///   وتحتوي على سكينة كابلر 1 برتقالية ثم قاطع الكابلر (مربع أخضر مفرغ عند الفتح)
 /// - جسر أفقي علوي مكتوب فوقه CPLR باللون البرتقالي
 /// - الرجل اليمنى تهبط وتحتوي على سكينة كابلر 2 برتقالية وتنتهي على البارة العليا BB1
 /// - سكاكين TIE على البارتين يميناً ويساراً مع كتابة TIE بالبرتقالي أسفل كل منهما
@@ -2360,7 +2787,7 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: leftLegX - 1.0,
             width: (rightLegX - leftLegX) + 2.0,
             height: 2.0,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // =========================================================
@@ -2372,19 +2799,24 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: leftLegX - 1.0,
             width: 2.0,
             height: 38,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
-          // ب. قاطع الكابلر (مربع سماوي مفرغ عند الفتح وأحمر مصمت عند التوصيل)
+          // ب. قاطع الكابلر (مربع أخضر مفرغ عند الفتح وأحمر مصمت عند التوصيل)
           Positioned(
             top: topBridgeY + 38,
             left: leftLegX - 7.0,
             child: BreakerSymbol(
               state: cplrCbState,
               size: 14.0,
-              openBorderColor: const Color(0xFF00E5FF),
+              openBorderColor: const Color(0xFF00FF00),
               onTap: onCplrCbTap,
             ),
+          ),
+          Positioned(
+            top: topBridgeY + 36,
+            left: leftLegX + 11,
+            child: const DevCodeBadge(code: 'CPLR-CB'),
           ),
 
           // ج. الخط من القاطع إلى سكينة كابلر 1
@@ -2393,7 +2825,7 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: leftLegX - 1.0,
             width: 2.0,
             height: 36,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // د. سكينة كابلر 1 برتقالية عند الفتح
@@ -2407,6 +2839,11 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               onTap: onCplrDs1Tap,
             ),
           ),
+          Positioned(
+            top: topBridgeY + 38 + 14 + 36,
+            left: leftLegX + 11,
+            child: const DevCodeBadge(code: 'CPLR-DS1'),
+          ),
 
           // هـ. الخط النازل من السكينة عبر BB1 وصولاً إلى BB2
           Positioned(
@@ -2414,7 +2851,7 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: leftLegX - 1.0,
             width: 2.0,
             height: bb2Y - (topBridgeY + 38 + 14 + 36 + 18),
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // =========================================================
@@ -2426,7 +2863,7 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: rightLegX - 1.0,
             width: 2.0,
             height: 62,
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // ب. سكينة كابلر 2 برتقالية عند الفتح (في منسوب وسطي مطابق للصورة)
@@ -2440,6 +2877,11 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               onTap: onCplrDs2Tap,
             ),
           ),
+          Positioned(
+            top: topBridgeY + 62,
+            left: rightLegX + 11,
+            child: const DevCodeBadge(code: 'CPLR-DS2'),
+          ),
 
           // ج. الخط النازل من السكينة 2 متصلاً بالبارة الأولى BB1 فقط
           Positioned(
@@ -2447,19 +2889,19 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
             left: rightLegX - 1.0,
             width: 2.0,
             height: bb1Y - (topBridgeY + 62 + 18),
-            child: Container(color: Colors.white),
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // =========================================================
-          // 5. البارة الأولى BB1 الأفقية والبيضاء مع سكاكين TIE
+          // 5. البارة الأولى BB1 الأفقية الخضراء بالكامل مع سكاكين TIE
           // =========================================================
           // مقطع البارة يسار التاي
           Positioned(
-            top: bb1Y - 1.0,
+            top: bb1Y - 1.4,
             left: 0,
             width: tieLeftX - 12,
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           // سكينة TIE بارة 1 يسار
           Positioned(
@@ -2471,13 +2913,18 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               width: 24,
             ),
           ),
+          Positioned(
+            top: bb1Y - 24,
+            left: tieLeftX - 16,
+            child: const DevCodeBadge(code: 'TIE-1A'),
+          ),
           // مقطع البارة الأوسط الرابط بين التاي الأيسر والأيمن (يعبر من خلاله كابلر BB1)
           Positioned(
-            top: bb1Y - 1.0,
+            top: bb1Y - 1.4,
             left: tieLeftX + 12,
             width: (tieRightX - 12) - (tieLeftX + 12),
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           // سكينة TIE بارة 1 يمين
           Positioned(
@@ -2489,25 +2936,30 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               width: 24,
             ),
           ),
+          Positioned(
+            top: bb1Y - 24,
+            left: tieRightX - 16,
+            child: const DevCodeBadge(code: 'TIE-1B'),
+          ),
           // مقطع البارة يمين التاي
           Positioned(
-            top: bb1Y - 1.0,
+            top: bb1Y - 1.4,
             left: tieRightX + 12,
             width: width - (tieRightX + 12),
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
 
           // =========================================================
-          // 6. البارة الثانية BB2 الأفقية والبيضاء مع سكاكين TIE
+          // 6. البارة الثانية BB2 الأفقية الخضراء بالكامل مع سكاكين TIE
           // =========================================================
           // مقطع البارة يسار التاي
           Positioned(
-            top: bb2Y - 1.0,
+            top: bb2Y - 1.4,
             left: 0,
             width: tieLeftX - 12,
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           // سكينة TIE بارة 2 يسار
           Positioned(
@@ -2519,13 +2971,18 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               width: 24,
             ),
           ),
+          Positioned(
+            top: bb2Y - 24,
+            left: tieLeftX - 16,
+            child: const DevCodeBadge(code: 'TIE-2A'),
+          ),
           // مقطع البارة الأوسط الرابط بين التاي الأيسر والأيمن (تتصل به الرجل اليسرى للكابلر)
           Positioned(
-            top: bb2Y - 1.0,
+            top: bb2Y - 1.4,
             left: tieLeftX + 12,
             width: (tieRightX - 12) - (tieLeftX + 12),
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
           // سكينة TIE بارة 2 يمين
           Positioned(
@@ -2537,47 +2994,92 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
               width: 24,
             ),
           ),
+          Positioned(
+            top: bb2Y - 24,
+            left: tieRightX - 16,
+            child: const DevCodeBadge(code: 'TIE-2B'),
+          ),
           // مقطع البارة يمين التاي
           Positioned(
-            top: bb2Y - 1.0,
+            top: bb2Y - 1.4,
             left: tieRightX + 12,
             width: width - (tieRightX + 12),
-            height: 2.4,
-            child: Container(color: Colors.white),
+            height: 2.8,
+            child: Container(color: const Color(0xFF00FF00)),
           ),
+        ],
+      ),
+    );
+  }
+}
 
-          // =========================================================
-          // 7. كتابة TIE بالبرتقالي أسفل سكاكين التاي اليسرى واليمنى
-          // =========================================================
-          Positioned(
-            top: bb2Y + 12,
-            left: tieLeftX - 20,
-            width: 40,
-            child: const Center(
-              child: Text(
-                'TIE',
-                style: TextStyle(
-                  color: Color(0xFFFFA726),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
+/// 🔲 مستطيل الزون الرمادي المنقط المحيط بقطاع الـ 11kV بالكامل (لون هادئ وخفيف)
+class Scada11kVZoneBox extends StatelessWidget {
+  final String label;
+  final Color borderColor;
+  final double strokeWidth;
+
+  const Scada11kVZoneBox({
+    super.key,
+    this.label = '11 KV SWITCHGEAR ZONE',
+    this.borderColor = const Color(0xFF424242),
+    this.strokeWidth = 1.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // المستطيل المنقط ذو الحواف المنحنية الخفيفة بلون رمادي خفيف وهادئ
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DottedRectPainter(
+                color: borderColor,
+                strokeWidth: strokeWidth,
+                dash: 5.0,
+                gap: 5.0,
+                radius: 6.0,
+                fillColor: const Color(0x02FFFFFF),
               ),
             ),
           ),
+
+          // بادج تعريف الزون على الإطار العلوي بتصميم رمادي خفيف
           Positioned(
-            top: bb2Y + 12,
-            left: tieRightX - 20,
-            width: 40,
-            child: const Center(
-              child: Text(
-                'TIE',
-                style: TextStyle(
-                  color: Color(0xFFFFA726),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
+            top: -9,
+            left: 18,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                border: Border.all(color: borderColor, width: 0.9),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 4.5,
+                    height: 4.5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE040FB),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color(0xFF78909C),
+                      fontSize: 8.0,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.0,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2585,4 +3087,78 @@ class ScadaCouplerAndTieBayWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+/// رسم مستطيل منقط/متقطع (Dotted/Dashed Rounded Rectangle)
+class _DottedRectPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dash;
+  final double gap;
+  final double radius;
+  final Color? fillColor;
+
+  _DottedRectPainter({
+    required this.color,
+    this.strokeWidth = 1.4,
+    this.dash = 6.0,
+    this.gap = 4.5,
+    this.radius = 6.0,
+    this.fillColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(
+      strokeWidth / 2,
+      strokeWidth / 2,
+      size.width - strokeWidth,
+      size.height - strokeWidth,
+    );
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+
+    if (fillColor != null && fillColor != Colors.transparent) {
+      final fillPaint = Paint()
+        ..color = fillColor!
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(rrect, fillPaint);
+    }
+
+    final strokePaint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path()..addRRect(rrect);
+    final dashedPath = Path();
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0.0;
+      bool draw = true;
+      while (distance < metric.length) {
+        final len = draw ? dash : gap;
+        if (draw) {
+          dashedPath.addPath(
+            metric.extractPath(
+                distance, (distance + len).clamp(0.0, metric.length)),
+            Offset.zero,
+          );
+        }
+        distance += len;
+        draw = !draw;
+      }
+    }
+
+    canvas.drawPath(dashedPath, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedRectPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth ||
+      oldDelegate.dash != dash ||
+      oldDelegate.gap != gap ||
+      oldDelegate.radius != radius ||
+      oldDelegate.fillColor != fillColor;
 }

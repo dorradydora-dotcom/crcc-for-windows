@@ -26,7 +26,7 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
   double _lastLayoutHeight = 0;
 
   static const double _canvasW = 1600.0;
-  static const double _canvasH = 940.0;
+  static const double _canvasH = 1180.0;
 
   @override
   void initState() {
@@ -444,6 +444,22 @@ class _MaarofSubstationScreenState extends State<MaarofSubstationScreen> {
         ),
       ),
       actions: [
+        // زر إظهار/إخفاء أكواد السكاكين والمفاتيح (Dev Mode)
+        Obx(() => IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints(minWidth: 26.w, minHeight: 26.h),
+              icon: Icon(
+                Icons.tag_rounded,
+                size: 14.sp,
+                color: controller.showDeviceCodes.value
+                    ? const Color(0xFFFFD54F)
+                    : Colors.white38,
+              ),
+              tooltip: controller.showDeviceCodes.value
+                  ? 'إخفاء أكواد السكاكين والمفاتيح'
+                  : 'إظهار أكواد السكاكين والمفاتيح (Dev Mode)',
+              onPressed: () => controller.toggleDeviceCodes(),
+            )),
         // زر سجل الأحداث والعمليات SOE مصغر
         IconButton(
           padding: EdgeInsets.zero,

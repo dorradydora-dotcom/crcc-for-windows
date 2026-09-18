@@ -38,6 +38,10 @@ class MaarofController extends GetxController {
   // 📝 سجل الأحداث والإنذارات
   final RxList<EventLogItem> eventLogs = <EventLogItem>[].obs;
 
+  // 🏷️ إظهار أكواد المفاتيح والسكاكين (لتسهيل الإشارة والتعديل أثناء التطوير)
+  final RxBool showDeviceCodes = true.obs;
+  void toggleDeviceCodes() => showDeviceCodes.toggle();
+
   // ⏱️ مؤقت سحب البيانات الحية
   Timer? _liveDataTimer;
 
@@ -261,7 +265,7 @@ class MaarofController extends GetxController {
         'name': 'TR2',
         'tap': 19,
         'dsA': SwitchState.closed, // على بارة 1 (BB1)
-        'dsB': SwitchState.open,   // على بارة 2 (BB2)
+        'dsB': SwitchState.open, // على بارة 2 (BB2)
         'pri_mw': 15.0,
         'pri_mvar': 0.0,
         'pri_mva': 15.0,
@@ -277,7 +281,7 @@ class MaarofController extends GetxController {
         'id': 'TR3',
         'name': 'TR3',
         'tap': 19,
-        'dsA': SwitchState.open,   // على بارة 1 (BB1)
+        'dsA': SwitchState.open, // على بارة 1 (BB1)
         'dsB': SwitchState.closed, // على بارة 2 (BB2)
         'pri_mw': 8.7,
         'pri_mvar': 1.8,
@@ -295,7 +299,7 @@ class MaarofController extends GetxController {
         'name': 'TR4',
         'tap': 19,
         'dsA': SwitchState.closed, // على بارة 1 (BB1)
-        'dsB': SwitchState.open,   // على بارة 2 (BB2)
+        'dsB': SwitchState.open, // على بارة 2 (BB2)
         'pri_mw': 7.6,
         'pri_mvar': 2.3,
         'pri_mva': 7.9,
@@ -400,7 +404,7 @@ class MaarofController extends GetxController {
       {'name': 'مكثف (2)', 'code': 'K02', 'a': 0.0, 'isCap': true, 'mvar': 0.0},
       {'name': 'البستان', 'code': 'K03', 'a': 119.4},
       {'name': 'المتحف الاسلامى', 'code': 'K04', 'a': 49.3},
-      {'name': '', 'code': 'K05', 'a': 0.0, 'isOpen': true},
+      {'name': 'دخول محول 4', 'code': 'K05', 'a': 0.0, 'isOpen': false},
       {'name': 'الدوحة (1)', 'code': 'K06', 'a': 1.3},
       {'name': 'ملحق تجارى (2)', 'code': 'K07', 'a': 13.7},
       {'name': 'هيلتون رمسيس (2)', 'code': 'K08', 'a': 77.2},
@@ -435,7 +439,7 @@ class MaarofController extends GetxController {
       {'name': 'توفيقية (1)', 'code': 'K18', 'a': 142.8},
       {'name': 'توفيقية (2)', 'code': 'K19', 'a': 136.3},
       {'name': 'التلفزيون', 'code': 'K20', 'a': 2.0},
-      {'name': '', 'code': 'K21', 'a': 0.0, 'isOpen': true},
+      {'name': 'دخول محول 3', 'code': 'K21', 'a': 0.0, 'isOpen': false},
       {'name': 'مثلث ماسبيرو (2)', 'code': 'K22', 'a': 41.7},
       {'name': 'شامبليون', 'code': 'K23', 'a': 51.0},
       {'name': 'ملحق تجارى (1)', 'code': 'K24', 'a': 13.6},
@@ -468,7 +472,7 @@ class MaarofController extends GetxController {
       {'name': 'الصالون الاخضر', 'code': 'K32', 'a': 83.1},
       {'name': 'محول مساعد (2)', 'code': 'K33', 'a': 1.2},
       {'name': 'مصلحة الكيميا', 'code': 'K34', 'a': 28.3},
-      {'name': '', 'code': 'K35', 'a': 0.0, 'isOpen': true},
+      {'name': 'دخول محول 2', 'code': 'K35', 'a': 0.0, 'isOpen': false},
       {'name': 'الثورى (1)', 'code': 'K36', 'a': 29.2},
       {'name': 'الثورى (2)', 'code': 'K37', 'a': 28.9},
       {'name': 'تفريغ الادارة (1)', 'code': 'K38', 'a': 47.8},
@@ -559,6 +563,30 @@ class MaarofController extends GetxController {
 
     current.state = newState;
     switches[switchId] = current.copyWith(state: newState);
+
+    // مزامنة قاطع الخرج للمحول مع قاطع الدخول 11kV المطابق له
+    if (switchId == 'CB_SEC_TR4' || switchId == 'CB_11_SEC1_K05') {
+      final pair = switchId == 'CB_SEC_TR4' ? 'CB_11_SEC1_K05' : 'CB_SEC_TR4';
+      final pItem = switches[pair];
+      if (pItem != null && pItem.state != newState) {
+        pItem.state = newState;
+        switches[pair] = pItem.copyWith(state: newState);
+      }
+    } else if (switchId == 'CB_SEC_TR3' || switchId == 'CB_11_SEC2_K21') {
+      final pair = switchId == 'CB_SEC_TR3' ? 'CB_11_SEC2_K21' : 'CB_SEC_TR3';
+      final pItem = switches[pair];
+      if (pItem != null && pItem.state != newState) {
+        pItem.state = newState;
+        switches[pair] = pItem.copyWith(state: newState);
+      }
+    } else if (switchId == 'CB_SEC_TR2' || switchId == 'CB_11_SEC3_K35') {
+      final pair = switchId == 'CB_SEC_TR2' ? 'CB_11_SEC3_K35' : 'CB_SEC_TR2';
+      final pItem = switches[pair];
+      if (pItem != null && pItem.state != newState) {
+        pItem.state = newState;
+        switches[pair] = pItem.copyWith(state: newState);
+      }
+    }
 
     // تسجيل الحدث في الـ SOE Logger
     eventLogs.insert(

@@ -14,7 +14,8 @@ class MaarofSldCanvas extends StatelessWidget {
   // 🎯 المنسوب الهندسي الدقيق للبارات في الشاشة
   static const double bb1Y = 320.0; // البارة الأولى 66kV (BB1)
   static const double bb2Y = 360.0; // البارة الثانية 66kV (BB2)
-  static const double bb11kVY = 560.0; // بارة الـ 11kV السفلية
+  static const double bb11kVY =
+      760.0; // بارة الـ 11kV السفلية (تمت إزاحتها لأسفل لتوسيع الزون وإعطاء مساحة هندسية مريحة للمحولات)
 
   final VoidCallback? onSoeTap;
   final VoidCallback? onCommTap;
@@ -31,7 +32,7 @@ class MaarofSldCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 1600,
-      height: 940,
+      height: 1180,
       color: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Obx(() {
@@ -40,6 +41,13 @@ class MaarofSldCanvas extends StatelessWidget {
         if (lines.length < 6 || transformers.length < 3) {
           return const SizedBox.shrink();
         }
+
+        final tr4 = transformers.firstWhere((t) => t.id == 'TR4',
+            orElse: () => transformers[2]);
+        final tr3 = transformers.firstWhere((t) => t.id == 'TR3',
+            orElse: () => transformers[1]);
+        final tr2 = transformers.firstWhere((t) => t.id == 'TR2',
+            orElse: () => transformers[0]);
 
         return Stack(
           clipBehavior: Clip.none,
@@ -82,74 +90,98 @@ class MaarofSldCanvas extends StatelessWidget {
             // =========================================================
             // خط 1: AZBAKIA
             Positioned(
-              left: 50,
+              left: 5,
               top: 90,
               child: _build66kVBay(context, lines[0]),
             ),
             // خط 2: SAYEDA1
             Positioned(
-              left: 210,
+              left: 195,
               top: 90,
               child: _build66kVBay(context, lines[1]),
             ),
             // خط 3: NSABT3
             Positioned(
-              left: 370,
+              left: 300,
               top: 90,
               child: _build66kVBay(context, lines[2]),
             ),
 
             // الكابلر بالمنتصف (قاطع و سكاكين التاي بين البارتين)
             Positioned(
-              left: 580,
+              left: 410,
               top: 90,
               child: _build66kVCouplerAndTieBay(context),
             ),
 
             // خط 4: NSABT1
             Positioned(
-              left: 970,
+              left: 855,
               top: 90,
               child: _build66kVBay(context, lines[3]),
             ),
             // خط 5: NSABT2
             Positioned(
-              left: 1140,
+              left: 975,
               top: 90,
               child: _build66kVBay(context, lines[4]),
             ),
             // خط 6: SAYEDA2
             Positioned(
-              left: 1380,
+              left: 1095,
               top: 90,
               child: _build66kVBay(context, lines[5]),
             ),
 
             // =========================================================
-            // 3. المحولات الثلاثة (TR2, TR3, TR4)
+            // 3. المحولات الثلاثة تنزل رأسياً متصلة مباشرة بمفاتيح خلايا الدخول (TR4 على K05، TR3 على K21، TR2 على K35)
             // =========================================================
-            // محول 2 (TR2): بين SAYEDA1 و NSABT3
+            // محول 4 (TR4 @ left=87): ينزل رأسياً ثم يعطف يميناً إلى K05 (Stack X≈342)
             Positioned(
-              left: 270,
+              left: 87,
               top: bb1Y,
-              child: _buildSingleTransformer(context, transformers[0]),
+              child: _buildSingleTransformer(
+                context,
+                tr4,
+                incomerTargetX: 255.0,
+              ),
             ),
-            // محول 3 (TR3): بين NSABT1 و NSABT2
+            // محول 3 (TR3 @ left=691): ينزل رأسياً ثم يعطف يميناً إلى K21 (Stack X≈802)
             Positioned(
-              left: 1040,
+              left: 691,
               top: bb1Y,
-              child: _buildSingleTransformer(context, transformers[1]),
+              child: _buildSingleTransformer(
+                context,
+                tr3,
+                incomerTargetX: 111.0,
+              ),
             ),
-            // محول 4 (TR4): يمين NSABT2 بجانب SAYEDA2
+            // محول 2 (TR2 @ left=1223): ينزل رأسياً ثم يعطف يميناً إلى K35 (Stack X≈1333)
             Positioned(
-              left: 1250,
+              left: 1223,
               top: bb1Y,
-              child: _buildSingleTransformer(context, transformers[2]),
+              child: _buildSingleTransformer(
+                context,
+                tr2,
+                incomerTargetX: 110.0,
+              ),
             ),
 
             // =========================================================
-            // 4. قضبان 11kV وخلايا التوزيع السفلية الـ 42 خلية
+            // 4. مستطيل الزون الرمادي المنقط المحيط بكامل قطاع الـ 11kV (موسع)
             // =========================================================
+            Positioned(
+              left: -8,
+              right: -8,
+              top: bb11kVY - 55,
+              height: 385,
+              child: const Scada11kVZoneBox(
+                label: '11 KV SWITCHGEAR ZONE',
+                strokeWidth: 1.2,
+              ),
+            ),
+
+            // قضبان 11kV وخلايا التوزيع السفلية الـ 42 خلية
             Positioned(
               left: 0,
               right: 0,
@@ -161,10 +193,6 @@ class MaarofSldCanvas extends StatelessWidget {
       }),
     );
   }
-
-
-
-
 
   // =========================================================================
   // ⚡ بارات الـ 66kV الخضراء المستمرة
@@ -335,7 +363,8 @@ class MaarofSldCanvas extends StatelessWidget {
   // =========================================================================
   // 🔄 محول القدرة 66/11kV
   // =========================================================================
-  Widget _buildSingleTransformer(BuildContext context, TransformerModel tr) {
+  Widget _buildSingleTransformer(BuildContext context, TransformerModel tr,
+      {double? incomerTargetX}) {
     return Obx(() {
       final priCbState =
           controller.switches[tr.primaryCb.id]?.state ?? tr.primaryCb.state;
@@ -356,6 +385,8 @@ class MaarofSldCanvas extends StatelessWidget {
               ? controller.bus3Voltage.value.toStringAsFixed(1)
               : controller.bus4Voltage.value.toStringAsFixed(1);
 
+      final double bottomStickEndY = (bb11kVY + 15.0) - bb1Y;
+
       return TransformerBayWidget(
         transformer: tr,
         priCbState: priCbState,
@@ -365,6 +396,8 @@ class MaarofSldCanvas extends StatelessWidget {
         ngrDsState: ngrDsState,
         ngrEsState: ngrEsState,
         busKv: busKv,
+        incomerTargetX: incomerTargetX,
+        bottomStickEndY: bottomStickEndY,
         onPriCbTap: () => controller.toggleSwitch(tr.primaryCb.id),
         onSecCbTap: () => controller.toggleSwitch(tr.secondaryCb.id),
         onBusDsATap: () => controller.toggleSwitch('DS_BUS_A_${tr.id}'),
@@ -395,7 +428,7 @@ class MaarofSldCanvas extends StatelessWidget {
           ),
 
           // وصلة الربط (Tie Loop) بين القسم 1 والقسم 2
-          _build11kVTieBridge(),
+          _build11kVTieBridge(tag: 'TIE-11-A'),
 
           // القسم 2 (14 خلية K15 حتى K28)
           Expanded(
@@ -409,7 +442,7 @@ class MaarofSldCanvas extends StatelessWidget {
           ),
 
           // وصلة الربط (Tie Loop) بين القسم 2 والقسم 3
-          _build11kVTieBridge(),
+          _build11kVTieBridge(tag: 'TIE-11-B'),
 
           // القسم 3 (14 خلية K29 حتى K42)
           Expanded(
@@ -475,7 +508,7 @@ class MaarofSldCanvas extends StatelessWidget {
     );
   }
 
-  Widget _build11kVTieBridge() {
+  Widget _build11kVTieBridge({String tag = 'TIE-11'}) {
     return SizedBox(
       width: 26,
       height: 310,
@@ -499,6 +532,14 @@ class MaarofSldCanvas extends StatelessWidget {
             child: BreakerSymbol(
               state: SwitchState.open,
               size: 11.0,
+            ),
+          ),
+          Positioned(
+            top: -10,
+            left: -8,
+            child: DevCodeBadge(
+              code: tag,
+              color: const Color(0xFF00E5FF),
             ),
           ),
         ],
